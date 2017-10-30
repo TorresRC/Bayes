@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
-use strict;
+#use strict;
 use List::MoreUtils qw(uniq);
-use lib "/Users/LabBioyBioGen/Bayes/lib";
+use lib "/Users/rc/Bayes/lib";
 use Routines;
 
 my($MainPath, $BoleanFileName, $MetaDataFileName, $nBoleanFile, $Line,
@@ -14,7 +14,7 @@ my(@BoleanFile, @BoleanFileFields, @BoleanTable, @MetaDataField, @MetaDataFile,
 my(%StrainClass, %Classes, %pClasses, %cpClasses, %ClassHits, %ProbeClass);
 my $BoleanTable = [ ]; 
 
-$MainPath = "/Users/LabBioyBioGen/Bayes";
+$MainPath = "/Users/rc/Bayes";
 $BoleanFileName = $MainPath ."/". "Tabla.csv";
 $MetaDataFileName = $MainPath ."/". 'MetaData.csv';
 
@@ -74,37 +74,40 @@ for ($i=1; $i<$nBoleanFile; $i++){
 	}
 }
 
-print "\nThe total of Hits into the bolean table are $Count";
+print "\nThe total of Hits into the bolean table are $Count\n";
 
 foreach $Class(@Classes){
-	$StrainHits = 0;
-   
+	$StrainHits = 0; 
 	for ($i=1;$i<$nBoleanFileFields; $i++){
-		$Strain = $BoleanTable[0][$i];
-      $Probe = $BoleanTable[$i][0];
-      #$ClassProbe{$Probe} = $Class;
-      
+		$Strain = $BoleanTable[0][$i];   
 		if ($StrainClass{$Strain} eq $Class){
 			for ($j=1;$j<$nBoleanFile;$j++){
 				$StrainHit = $BoleanTable[$j][$i];
 				$StrainHits += $StrainHit;
-         }
-         $ProbeHits = 0;
-         for ($j=1; $j<$nBoleanFileFields;$j++){
-            $ProbeHit = $BoleanTable[$i][$j];
-            $ProbeHits += $ProbeHit;
-			}   
+			}
+			for ($j=1;$j<$nBoleanFile; $j++){
+				$Probe = $BoleanTable[$j][0];
+				$ProbeHit = $BoleanTable[$j][$$i];
 		}
-      $ProbeClass{$Probe} = $ProbeHits;
-      print "\n $ProbeClass{$Probe}\n";
-      #exit;
 	}
 	$ClassHits{$Class} = $StrainHits;
+	
+	$ProbeHits = 0;
+	
+		for ($j=1; $j<$nBoleanFileFields;$j++){
+				
+				$ProbeHits += $ProbeHit;
+			}
+		$Classes{$Probe}{$Class} = $ProbeHits;
+	}
+		#$StrainClass{$Strain}{$Probe} = $ProbeHits;
+    print "\n$Classes{$Probe}{$Class}\n$Classes{$Class}\n$StrainClass{$Strain}\n";
+    exit;
 }
 
-foreach my $Class(@Classes){
-print "\nThe Class $Class have $ClassHits{$Class} hits";
-}
+##foreach my $Class(@Classes){
+##print "\nThe Class $Class have $ClassHits{$Class} hits";
+##}
 
 #foreach $Class(@Classes){
 #   for ($i=1; $i<$nBoleanFile; $i++){
