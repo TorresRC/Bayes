@@ -59,7 +59,6 @@ for ($i=0;$i<$nClasses;$i++){
 	$pClasses{$Classes[$i]} = $Counter/$N;
 	$cpClasses{$Classes[$i]} = 1-$Counter/$N;
 }
-
 foreach my $Class(@Classes){
 print "\nThe Class $Class have $Classes{$Class} elements, and its probability is $pClasses{$Class} while the complemented probability is $cpClasses{$Class}";
 }
@@ -73,49 +72,43 @@ for ($i=1; $i<$nBoleanFile; $i++){
 		}
 	}
 }
-
 print "\nThe total of Hits into the bolean table are $Count\n";
 
 foreach $Class(@Classes){
 	$StrainHits = 0; 
 	for ($i=1;$i<$nBoleanFileFields; $i++){
-		$Strain = $BoleanTable[0][$i];   
+		$Strain = $BoleanTable[0][$i];
 		if ($StrainClass{$Strain} eq $Class){
 			for ($j=1;$j<$nBoleanFile;$j++){
 				$StrainHit = $BoleanTable[$j][$i];
 				$StrainHits += $StrainHit;
 			}
-			for ($j=1;$j<$nBoleanFile; $j++){
-				$Probe = $BoleanTable[$j][0];
-				$ProbeHit = $BoleanTable[$j][$$i];
 		}
 	}
-	$ClassHits{$Class} = $StrainHits;
-	
-	$ProbeHits = 0;
-	
-		for ($j=1; $j<$nBoleanFileFields;$j++){
-				
-				$ProbeHits += $ProbeHit;
-			}
-		$Classes{$Probe}{$Class} = $ProbeHits;
-	}
-		#$StrainClass{$Strain}{$Probe} = $ProbeHits;
-    print "\n$Classes{$Probe}{$Class}\n$Classes{$Class}\n$StrainClass{$Strain}\n";
-    exit;
+	$ClassHits{$Class} = $StrainHits;		
+}
+foreach my $Class(@Classes){
+	print "\nThe Class $Class have $ClassHits{$Class} hits";
 }
 
-##foreach my $Class(@Classes){
-##print "\nThe Class $Class have $ClassHits{$Class} hits";
-##}
-
-#foreach $Class(@Classes){
-#   for ($i=1; $i<$nBoleanFile; $i++){
-#      $Probe = $BoleanTable[$i][0];
-#      for ($j=1; $j<$Classes{$Class}; $j++){
-#         $Probes{$Class} += $BoleanTable[$i][$j];
-#      }
-#   }
-
+foreach $Class(@Classes){
+	for ($i=1;$i<$nBoleanFile;$i++){
+		$Probe = $BoleanTable[$i][0];
+		for ($j=1;$j<$nBoleanFileFields; $j++){
+			$Strain = $BoleanTable[0][$j];
+			if ($StrainClass{$Strain} eq $Class){
+				$ProbeClassHit = $BoleanTable[$i][$j];
+				$ProbeClass{$Probe}{$Class} += $ProbeClassHit;
+			}
+		}
+	}
+}
+for ($i=1;$i<$nBoleanFile;$i++){
+	$Probe = $BoleanTable[$i][0];
+	foreach $Class(@Classes){
+		print "\nThe probe $Probe has $ProbeClass{$Probe}{$Class} hits in class $Class";
+	}
+}
 print "\n";
 exit;
+
