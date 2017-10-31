@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 #use strict;
 use List::MoreUtils qw(uniq);
-use lib "/Users/rc/Bayes/lib";
+use lib "/home/rtorres/Bayes/lib";
 use Routines;
 
 my($MainPath, $BoleanFileName, $MetaDataFileName, $nBoleanFile, $Line,
@@ -14,7 +14,7 @@ my(@BoleanFile, @BoleanFileFields, @BoleanTable, @MetaDataField, @MetaDataFile,
 my(%StrainClass, %Classes, %pClasses, %cpClasses, %ClassHits, %ProbeClass);
 my $BoleanTable = [ ]; 
 
-$MainPath = "/Users/rc/Bayes";
+$MainPath = "/home/rtorres/Bayes";
 $BoleanFileName = $MainPath ."/". "Tabla.csv";
 $MetaDataFileName = $MainPath ."/". 'MetaData.csv';
 
