@@ -1,16 +1,20 @@
 #!/usr/bin/perl -w
 #use strict;
 use List::MoreUtils qw(uniq);
-use lib "/Users/rc/Bayes/lib";
-use Routines;
+use Getopt::Long qw(GetOptions);
+Getopt::Long::Configure qw(gnu_getopt);
+#use lib "/Users/rc/Bayes/lib";
+#use Routines;
 
-my ($TrainingFileName, $MetaDataFileName, $QryFile);
+my ($TrainingFileName, $MetaDataFileName, $QryFile, $Statistics);
 
+$Statistics = 0;
 GetOptions(
         'help'        => \$Help,
-        'training|t=s'=> \$$TrainingFileName,
-        'metadata|m=s'=> \$MetaDataFileName,
-        'query|q=s'   => \$QryFile,
+        'training|t:s'=> \$TrainingFileName,
+        'metadata|m:s'=> \$MetaDataFileName,
+        'query|q:s'   => \$QryFile,
+        'stat|s'      => \$Statistics
         ) or die "USAGE:\n  $0 [--help] [--training -t filename] [--metadata -m filename]
       [--query -q filename] [--class -c string]
 \n  Use \'--help\' to print detailed descriptions of options.\n\n";
@@ -26,7 +30,8 @@ if($Help){
 my($MainPath, $nTrainingFile, $Line, $nTrainingFileFields, $N, $MetaData,
    $nMetaDataFile, $nMetaDataFileFields, $Region, $Strain, $Class, $nClasses,
    $Counter, $Hit, $Count, $Probe, $StrainHit, $StrainHits, $ProbeHit, $ProbeHits,
-   $nProbe, $nQryFile, $nQryFileFields, $QryHit, $QryStrain);
+   $nProbe, $nQryFile, $nQryFileFields, $QryHit, $QryStrain, $PossibleClass,
+   $Probabilities);
 my($i, $j);
 my(@TrainingFile, @TrainingFileFields, @TrainingMatrix, @MetaDataField, @MetaDataFile,
    @MetaDataFileFields, @MetaData, @Classes, @Strains, @QryFile, @QryFileFields,
@@ -37,11 +42,14 @@ my $TrainingMatrix = [ ];
 my $QryMatrix = [ ];
 my $Report = [ ];
 
-$MainPath = "/Users/rc/Bayes";
-$TrainingFileName = $MainPath ."/". "Tabla.csv";
-$MetaDataFileName = $MainPath ."/". 'MetaData.csv';
-$QryFile = $MainPath ."/". "Qry.csv";
+$MainPath = "/home/rtorres/Bayes";
+#$TrainingFileName = $MainPath ."/". "Tabla.csv";
+#$MetaDataFileName = $MainPath ."/". 'MetaData.csv';
+#$QryFile = $MainPath ."/". "Qry.csv";
 $Report = $MainPath ."/". "Prediction.csv";
+if($Statistics == 1){
+        $Probabilities = $MainPath ."/". "Probabilities.txt";
+}
 
 #Loading the bolean training file
 @TrainingFile = ReadFile($TrainingFileName);
@@ -76,13 +84,21 @@ for ($i=0; $i<$nMetaDataFile; $i++){
 $nMetaDataFileFields = scalar@MetaDataFileFields;
 
 #Obtaining classes
+print "\nThe following columns were detected as possible classes:";
+for ($i=1;$i<$nMetaDataFileFields;$i++){
+        $PossibleClass = $MetaData[0][$i];
+        print "\n\t[$i] $PossibleClass";
+}
+print "\n\nPlease type the number of the desired class: ";
+$Column = <STDIN>;
+chomp $Column;
+
 for ($i=1;$i<$nMetaDataFile;$i++){
-	$Class = $MetaData[$i]->[1];
+	$Class = $MetaData[$i]->[$Column];
 	push @Classes, $Class;
 }
 @Classes = uniq(@Classes);
 $nClasses = scalar@Classes;
-
 
 for ($i=0;$i<$nClasses;$i++){
 	$Counter = 0;
@@ -172,16 +188,17 @@ for ($i=1;$i<$nQryFileFields;$i++){
 }
   
 #print "\n->$pQry{C}{16}\n$cpQry{C}{16}<-\n";
-
+open (FILE, ">$Probabilities");
 for($i=1; $i<$nQryFileFields; $i++){
+   $QryStrain = $QryMatrix[0][$i];
+   print FILE "#$QryStrain\n";
    for($j=0; $j<$nClasses; $j++){
-      $QryStrain = $QryMatrix[0][$i];
       $Class = $Classes[$j];
       $Report -> [$i][0] = $QryStrain;
       $Report -> [0][$j+1] = $Class;
       $Class = $Classes[$j];
       
-      print "\nClase $Class -> $pQry{$Class}{$QryStrain}\t$cpQry{$Class}{$QryStrain}";
+      print FILE "Class $Class -> [p]-$pQry{$Class}{$QryStrain}\t[cp]-$cpQry{$Class}{$QryStrain}\n";
       if ($pQry{$Class}{$QryStrain} > $cpQry{$Class}{$QryStrain}){
          $Report -> [$i][$j+1] = "Accepted";
       }else{
@@ -189,16 +206,39 @@ for($i=1; $i<$nQryFileFields; $i++){
       }
    }
 }
+close FILE;
    
 open (FILE, ">$Report");
    for($i=0;$i<$nQryFileFields;$i++){
       for($j=0;$j<$nClasses+1;$j++){
-         print FILE $Report -> [$i][$j], ","
+         print FILE $Report -> [$i][$j], ",";
+         print $Report -> [$i][$j], " ";
       }
+      print "\n";
       print FILE "\n";
    }
 close FILE;
 
 print "\n";
 exit;
+
+#######################################################
+sub ReadFile{
+    my ($InputFile) = @_;
+    unless (open(FILE, $InputFile)){
+        print "The Routine ReadFile Can not open $InputFile file\n";
+        exit;
+    }
+    
+    my @Temp = <FILE>;
+    chomp @Temp;
+    close FILE;
+    my @File;
+    foreach my $Row (@Temp){
+        if ($Row =~/^#/) {
+            }else{ push @File, $Row;
+        }
+    }
+    return @File;
+}
 
