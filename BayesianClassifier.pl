@@ -4,47 +4,68 @@ use List::MoreUtils qw(uniq);
 use lib "/Users/rc/Bayes/lib";
 use Routines;
 
-my($MainPath, $BoleanFileName, $MetaDataFileName, $nBoleanFile, $Line,
-   $nBoleanFileFields, $N, $MetaData, $nMetaDataFile, $nMetaDataFileFields,
-   $Region, $Strain, $Class, $nClasses, $Counter, $Hit, $Count, $Probe, $StrainHit,
-   $StrainHits, $ProbeHit, $ProbeHits, $nProbe, $BoleanQry, $nBoleanQry, $nBoleanQryFields,
-   $QryHit, $QryStrain);
+my ($TrainingFileName, $MetaDataFileName, $QryFile);
+
+GetOptions(
+        'help'        => \$Help,
+        'training|t=s'=> \$$TrainingFileName,
+        'metadata|m=s'=> \$MetaDataFileName,
+        'query|q=s'   => \$QryFile,
+        ) or die "USAGE:\n  $0 [--help] [--training -t filename] [--metadata -m filename]
+      [--query -q filename] [--class -c string]
+\n  Use \'--help\' to print detailed descriptions of options.\n\n";
+
+if($Help){
+        print "
+        \t--training <Training_File_Name>
+        \t--metadata <Metadata_File_Name>
+        \t--query <Query_fasta>
+        exit;
+}
+
+my($MainPath, $nTrainingFile, $Line, $nTrainingFileFields, $N, $MetaData,
+   $nMetaDataFile, $nMetaDataFileFields, $Region, $Strain, $Class, $nClasses,
+   $Counter, $Hit, $Count, $Probe, $StrainHit, $StrainHits, $ProbeHit, $ProbeHits,
+   $nProbe, $nQryFile, $nQryFileFields, $QryHit, $QryStrain);
 my($i, $j);
-my(@BoleanFile, @BoleanFileFields, @BoleanTable, @MetaDataField, @MetaDataFile,
-   @MetaDataFileFields, @MetaData, @Classes, @Strains, @BoleanQry, @BoleanQryFields, @QryTable);
-my(%StrainClass, %Classes, %pClasses, %cpClasses, %ClassHits, %ProbeClass, %pProbeClass, %cpProbeClass, %ProbeTotalHits, %cpQry, %pQry);
-my $BoleanTable = [ ];
-my $QryTable = [ ];
+my(@TrainingFile, @TrainingFileFields, @TrainingMatrix, @MetaDataField, @MetaDataFile,
+   @MetaDataFileFields, @MetaData, @Classes, @Strains, @QryFile, @QryFileFields,
+   @QryMatrix);
+my(%StrainClass, %Classes, %pClasses, %cpClasses, %ClassHits, %ProbeClass,
+   %pProbeClass, %cpProbeClass, %ProbeTotalHits, %cpQry, %pQry);
+my $TrainingMatrix = [ ];
+my $QryMatrix = [ ];
+my $Report = [ ];
 
 $MainPath = "/Users/rc/Bayes";
-$BoleanFileName = $MainPath ."/". "Tabla.csv";
+$TrainingFileName = $MainPath ."/". "Tabla.csv";
 $MetaDataFileName = $MainPath ."/". 'MetaData.csv';
-$BoleanQry = $MainPath ."/". "Qry.csv";
+$QryFile = $MainPath ."/". "Qry.csv";
+$Report = $MainPath ."/". "Prediction.csv";
 
-@BoleanFile = ReadFile($BoleanFileName);
-$nBoleanFile = scalar@BoleanFile;
-$nProbe = $nBoleanFile-1;
-for ($i=0; $i<$nBoleanFile; $i++){
-	$Line = $BoleanFile[$i];
-	@BoleanFileFields = split(",",$Line);
-	push (@BoleanTable, [@BoleanFileFields]);
+#Loading the bolean training file
+@TrainingFile = ReadFile($TrainingFileName);
+$nTrainingFile = scalar@TrainingFile;
+$nProbe = $nTrainingFile-1;
+for ($i=0; $i<$nTrainingFile; $i++){
+	$Line = $TrainingFile[$i];
+	@TrainingFileFields = split(",",$Line);
+	push (@TrainingMatrix, [@TrainingFileFields]);
 }
-$nBoleanFileFields = scalar@BoleanFileFields;
-$N = $nBoleanFileFields-1;
+$nTrainingFileFields = scalar@TrainingFileFields;
+$N = $nTrainingFileFields-1;
 
-
-
-@BoleanQry = ReadFile($BoleanQry);
-$nBoleanQry = scalar@BoleanQry;
-for ($i=0; $i<$nBoleanQry; $i++){
-	$Line = $BoleanQry[$i];
-	@BoleanQryFields = split(",",$Line);
-	push (@QryTable, [@BoleanQryFields]);
+#Loading the bolean query file
+@QryFile = ReadFile($QryFile);
+$nQryFile = scalar@QryFile;
+for ($i=0; $i<$nQryFile; $i++){
+	$Line = $QryFile[$i];
+	@QryFileFields = split(",",$Line);
+	push (@QryMatrix, [@QryFileFields]);
 }
-$nBoleanQryFields = scalar@BoleanQryFields;
+$nQryFileFields = scalar@QryFileFields;
 
-
-
+#Loading the metadata file
 @MetaDataFile = ReadFile($MetaDataFileName);
 $nMetaDataFile = scalar@MetaDataFile;
 for ($i=0; $i<$nMetaDataFile; $i++){
@@ -54,15 +75,14 @@ for ($i=0; $i<$nMetaDataFile; $i++){
 }
 $nMetaDataFileFields = scalar@MetaDataFileFields;
 
-
-
+#Obtaining classes
 for ($i=1;$i<$nMetaDataFile;$i++){
 	$Class = $MetaData[$i]->[1];
 	push @Classes, $Class;
 }
-
 @Classes = uniq(@Classes);
 $nClasses = scalar@Classes;
+
 
 for ($i=0;$i<$nClasses;$i++){
 	$Counter = 0;
@@ -74,52 +94,46 @@ for ($i=0;$i<$nClasses;$i++){
 			$Counter++;
 		}
 	}
-	$Classes{$Classes[$i]} = $Counter;
-	$pClasses{$Classes[$i]} = $Counter/$N;
-	$cpClasses{$Classes[$i]} = 1-$Counter/$N;
+	$Classes{$Classes[$i]} = $Counter; #Number of elements in each class
+	$pClasses{$Classes[$i]} = $Counter/$N; #Probability of each class
+	$cpClasses{$Classes[$i]} = 1-$Counter/$N; #Complement probability of each class
 }
-#foreach my $Class(@Classes){
-#   print "\nThe Class $Class have $Classes{$Class} elements, and its probability is $pClasses{$Class} while the complemented probability is $cpClasses{$Class}";
-#}
 
+#Calculating the total of hits into the training matrix
 $GlobalHits = 0;
-
-for ($i=1; $i<$nBoleanFile; $i++){
-	for ($j=1; $j<$nBoleanFileFields; $j++){
-		$Hit = $BoleanTable[$i][$j];
+for ($i=1; $i<$nTrainingFile; $i++){
+	for ($j=1; $j<$nTrainingFileFields; $j++){
+		$Hit = $TrainingMatrix[$i][$j];
 		if ($Hit != 0){
 			$GlobalHits++;
 		}
 	}
 }
-#print "\nThe total of Hits into the bolean table are $GlobalHits\n";
 
+#Calculating the total of hits in each class
 foreach $Class(@Classes){
 	$StrainHits = 0; 
-	for ($i=1;$i<$nBoleanFileFields; $i++){
-		$Strain = $BoleanTable[0][$i];
+	for ($i=1;$i<$nTrainingFileFields; $i++){
+		$Strain = $TrainingMatrix[0][$i];
 		if ($StrainClass{$Strain} eq $Class){
-			for ($j=1;$j<$nBoleanFile;$j++){
-				$StrainHit = $BoleanTable[$j][$i];
+			for ($j=1;$j<$nTrainingFile;$j++){
+				$StrainHit = $TrainingMatrix[$j][$i];
 				$StrainHits += $StrainHit;
 			}
 		}
 	}
-	$ClassHits{$Class} = $StrainHits;		
+	$ClassHits{$Class} = $StrainHits;	
 }
-#foreach my $Class(@Classes){
-#	print "\nThe Class $Class have $ClassHits{$Class} hits";
-#}
 
 foreach $Class(@Classes){
-	for ($i=1;$i<$nBoleanFile;$i++){
-		$Probe = $BoleanTable[$i][0];
+	for ($i=1;$i<$nTrainingFile;$i++){
+		$Probe = $TrainingMatrix[$i][0];
       $ProbeTotalHits{$Probe} = 0;
-		for ($j=1;$j<$nBoleanFileFields; $j++){
-			$Strain = $BoleanTable[0][$j];
-         $ProbeTotalHits{$Probe} += $BoleanTable[$i][$j];
+		for ($j=1;$j<$nTrainingFileFields; $j++){         
+			$Strain = $TrainingMatrix[0][$j];
+         $ProbeTotalHits{$Probe} += $TrainingMatrix[$i][$j];
 			if ($StrainClass{$Strain} eq $Class){
-				$ProbeClassHit = $BoleanTable[$i][$j];
+				$ProbeClassHit = $TrainingMatrix[$i][$j];
 				$ProbeClass{$Probe}{$Class} += $ProbeClassHit;
 			}
 		}
@@ -128,8 +142,8 @@ foreach $Class(@Classes){
 
 #print "\n-->$ProbeTotalHits{j}<--\n";
 
-for ($i=1;$i<$nBoleanFile;$i++){
-	$Probe = $BoleanTable[$i][0];
+for ($i=1;$i<$nTrainingFile;$i++){
+	$Probe = $TrainingMatrix[$i][0];
 	foreach $Class(@Classes){
       $pProbeClass{$Probe}{$Class} = ($ProbeClass{$Probe}{$Class}+1)/($ClassHits{$Class}+$nProbe);
       $cpProbeClass{$Probe}{$Class} = ($ProbeTotalHits{$Probe}-$ProbeClass{$Probe}{$Class}+1)/(($GlobalHits-$ClassHits{$Class})+$nProbe);
@@ -137,32 +151,53 @@ for ($i=1;$i<$nBoleanFile;$i++){
 	}
 }
 
-for ($i=1;$i<$nBoleanQryFields;$i++){
-   foreach $Class(@Classes){
-      $QryStrain = $QryTable[0][$i];
+$Report -> [0][0] = "";
+
+for ($i=1;$i<$nQryFileFields;$i++){
+   $QryStrain = $QryMatrix[0][$i];
+   foreach $Class(@Classes){     
       $pQryClass = $pClasses{$Class};
       $cpQryClass = $cpClasses{$Class}; 
-      for ($j=1;$j<$nBoleanQry;$j++){
-         $Probe = $QryTable[$j][0];
-         $QryHit = $QryTable[$j][$i];
+      for ($j=1;$j<$nQryFile;$j++){
+         $Probe = $QryMatrix[$j][0];
+         $QryHit = $QryMatrix[$j][$i];
          if($QryHit == 1){
             $pQryClass = $pQryClass*$pProbeClass{$Probe}{$Class};
             $cpQryClass = $cpQryClass*$cpProbeClass{$Probe}{$Class};
          }
       }
-      #$pQry{$Class}{$QryStrain} = $pQryClass;
-      #$cpQry{$Class}{$QryStrain} = $cpQryClass;
       $pQry{$Class}{$QryStrain} = $pQryClass;
       $cpQry{$Class}{$QryStrain} = $cpQryClass;
    }
 }
   
 #print "\n->$pQry{C}{16}\n$cpQry{C}{16}<-\n";
-for($i=0; $i<$nBoleanQryFields; $i++){
-   $QryStrain = $QryTable[0][$i]; 
-   foreach $Class (@Classes){
-   print "\nClase $Class -> $pQry{$Class}{17}\t$cpQry{$Class}{17}"; 
+
+for($i=1; $i<$nQryFileFields; $i++){
+   for($j=0; $j<$nClasses; $j++){
+      $QryStrain = $QryMatrix[0][$i];
+      $Class = $Classes[$j];
+      $Report -> [$i][0] = $QryStrain;
+      $Report -> [0][$j+1] = $Class;
+      $Class = $Classes[$j];
+      
+      print "\nClase $Class -> $pQry{$Class}{$QryStrain}\t$cpQry{$Class}{$QryStrain}";
+      if ($pQry{$Class}{$QryStrain} > $cpQry{$Class}{$QryStrain}){
+         $Report -> [$i][$j+1] = "Accepted";
+      }else{
+         $Report -> [$i][$j+1] = "Rejected";
+      }
+   }
 }
+   
+open (FILE, ">$Report");
+   for($i=0;$i<$nQryFileFields;$i++){
+      for($j=0;$j<$nClasses+1;$j++){
+         print FILE $Report -> [$i][$j], ","
+      }
+      print FILE "\n";
+   }
+close FILE;
 
 print "\n";
 exit;
