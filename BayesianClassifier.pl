@@ -19,7 +19,7 @@ if($Help){
         print "
         \t--training <Training_File_Name>
         \t--metadata <Metadata_File_Name>
-        \t--query <Query_fasta>
+        \t--query <Query_fasta>";
         exit;
 }
 
