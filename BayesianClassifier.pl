@@ -31,7 +31,7 @@ my($MainPath, $nTrainingFile, $Line, $nTrainingFileFields, $N, $MetaData,
    $nMetaDataFile, $nMetaDataFileFields, $Region, $Strain, $Class, $nClasses,
    $Counter, $Hit, $Count, $Probe, $StrainHit, $StrainHits, $ProbeHit, $ProbeHits,
    $nProbe, $nQryFile, $nQryFileFields, $QryHit, $QryStrain, $PossibleClass,
-   $Probabilities);
+   $Probabilities, $Column);
 my($i, $j);
 my(@TrainingFile, @TrainingFileFields, @TrainingMatrix, @MetaDataField, @MetaDataFile,
    @MetaDataFileFields, @MetaData, @Classes, @Strains, @QryFile, @QryFileFields,
@@ -42,7 +42,7 @@ my $TrainingMatrix = [ ];
 my $QryMatrix = [ ];
 my $Report = [ ];
 
-$MainPath = "/home/rtorres/Bayes";
+$MainPath = "/Users/rc/Bayes";
 #$TrainingFileName = $MainPath ."/". "Tabla.csv";
 #$MetaDataFileName = $MainPath ."/". 'MetaData.csv';
 #$QryFile = $MainPath ."/". "Qry.csv";
@@ -191,7 +191,7 @@ for ($i=1;$i<$nQryFileFields;$i++){
 open (FILE, ">$Probabilities");
 for($i=1; $i<$nQryFileFields; $i++){
    $QryStrain = $QryMatrix[0][$i];
-   print FILE "#$QryStrain\n";
+   print FILE "$QryStrain\n";
    for($j=0; $j<$nClasses; $j++){
       $Class = $Classes[$j];
       $Report -> [$i][0] = $QryStrain;
