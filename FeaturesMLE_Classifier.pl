@@ -162,13 +162,15 @@ foreach $Class(@Classes){
       $Matrix -> [$i][0] = $Probe;
       for($j=1; $j<4; $j++){
          $Matrix -> [0][$j] = $j;
-         $Matrix -> [$i][1] = $ProbeClass{$Probe}{$Class};
-         $Matrix -> [$i][2] = ($ProbeTotalHits{$Probe})-($ProbeClass{$Probe}{$Class});
-         $Matrix -> [$i][3] = ($Classes{$Class})-($ProbeClass{$Probe}{$Class});
-         $Matrix -> [$i][4] = ($N-($Classes{$Class}))-(($ProbeTotalHits{$Probe})-($ProbeClass{$Probe}{$Class}));
+         $Matrix -> [$i][1] = $ProbeClass{$Probe}{$Class}; # hits de sonda a en clase a
+         $Matrix -> [$i][2] = ($ProbeTotalHits{$Probe})-($ProbeClass{$Probe}{$Class}); # Hits de sonda a que no están en clase A
+         $Matrix -> [$i][3] = ($Classes{$Class})-($ProbeClass{$Probe}{$Class}); # Numero de no hits en clase A (numero de ceros en clase A)
+         $Matrix -> [$i][4] = ($N-($Classes{$Class}))-(($ProbeTotalHits{$Probe})-($ProbeClass{$Probe}{$Class})); # Numero de ceros fuera de A
       }
    }
 }
+
+
 
 for($i=0;$i<$nTrainingFile;$i++){
    for($j=0;$j<5;$j++){
