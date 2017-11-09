@@ -17,7 +17,7 @@ my(@TrainingFile, @TrainingFileFields, @TrainingMatrix, @MetaDataField, @MetaDat
    @QryMatrix);
 my(%StrainClass, %Classes, %pClasses, %cpClasses, %ClassHits, %FeatureClass,
    %pFeatureClass, %cpFeatureClass, %FeatureTotalHits, %cpQry, %pQry);
-my(%aa, %ab, %ba, %bb);
+my(%a, %b, %c, %d);
 my $TrainingMatrix = [ ];
 my $Matrix = [ ];
 
@@ -124,13 +124,15 @@ foreach $Class(@Classes){
 foreach $Class(@Classes){
    for ($i=1;$i<$LinesOnTrainingFile;$i++){
       $Feature = $TrainingMatrix[$i][0];
-      $aa{$Feature}{$Class} = $FeatureClass{$Feature}{$Class}; # hits de sonda a en clase a
-      $ab{$Feature}{$Class} = $FeatureTotalHits{$Feature}-$FeatureClass{$Feature}{$Class}; # Hits de sonda a que no están en clase A
-      $ba{$Feature}{$Class} = $Classes{$Class}-$FeatureClass{$Feature}{$Class}; # Numero de no hits en clase A (numero de ceros en clase A)
-      $bb{$Feature}{$Class} = ($N-$Classes{$Class})-($FeatureTotalHits{$Feature}-$FeatureClass{$Feature}{$Class}); # Numero de ceros fuera de A
+      $a{$Feature}{$Class} = $FeatureClass{$Feature}{$Class}; # hits de sonda a en clase a
+      $b{$Feature}{$Class} = $FeatureTotalHits{$Feature}-$FeatureClass{$Feature}{$Class}; # Hits de sonda a que no están en clase A
+      $c{$Feature}{$Class} = $Classes{$Class}-$FeatureClass{$Feature}{$Class}; # Numero de no hits en clase A (numero de ceros en clase A)
+      $d{$Feature}{$Class} = ($N-$Classes{$Class})-($FeatureTotalHits{$Feature}-$FeatureClass{$Feature}{$Class}); # Numero de ceros fuera de A
+	  
+	  $MLE{$Feature} = ($a/$N)*(log (($N*$a)/(($a+$b)*($a+$c)))+($b/$N)*(log (($N*$b)/(($b+$a)*($b+$d)))+($c/$N)*(log (($N*$c)/(($c+$d)*($c+$a)))
    }
 }
 
-print "$aa{a}{B} - $ab{a}{B} - $ba{a}{B} - $bb{a}{B}\n";
+print "$a{a}{B} - $b{a}{B} - $c{a}{B} - $d{a}{B}\n";
 
 exit;
