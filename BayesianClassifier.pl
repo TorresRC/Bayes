@@ -3,8 +3,8 @@
 use List::MoreUtils qw(uniq);
 use Getopt::Long qw(GetOptions);
 Getopt::Long::Configure qw(gnu_getopt);
-#use lib "/Users/rc/Bayes/lib";
-#use Routines;
+use lib "/Users/bioinformatica/Documents/Bayes/lib";
+use Routines;
 
 my ($TrainingFileName, $MetaDataFileName, $QryFile, $Statistics);
 
@@ -42,7 +42,7 @@ my $TrainingMatrix = [ ];
 my $QryMatrix = [ ];
 my $Report = [ ];
 
-$MainPath = "/Users/rc/Bayes";
+$MainPath = "/Users/bioinformatica/Documents/Bayes";
 #$TrainingFileName = $MainPath ."/". "Tabla.csv";
 #$MetaDataFileName = $MainPath ."/". 'MetaData.csv';
 #$QryFile = $MainPath ."/". "Qry.csv";
