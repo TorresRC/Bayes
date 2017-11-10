@@ -26,6 +26,7 @@ $TrainingFileName = $MainPath ."/". "Training.csv";
 $MetaDataFileName = $MainPath ."/". 'MetaData.csv';
 $FeaturesMLE = $MainPath ."/". "XiSquared.csv";
 $Plot            = $MainPath ."/". "XiSquared.pdf";
+$XiTable  = $MainPath ."/". "XiTable";
 $RScript         = $MainPath ."/". "XiSquared.R";
 
 #Loading the bolean training file
@@ -39,6 +40,19 @@ for ($i=0; $i<$LinesOnTrainingFile; $i++){
 }
 $ColumnsOnTrainingFile = scalar@TrainingFileFields;
 $N = $ColumnsOnTrainingFile-1;
+
+
+#Loading the XiTable file
+@XiMatrix = ReadFile($XiTable);
+$LinesOnXiTableFile = scalar@XiMatrix;
+$nXiTable = $LinesOnXiTableFile-1;
+for ($i=0; $i<$LinesOnXiTableFile; $i++){
+	$Line = $XiMatrix[$i];
+	@XiTableFileFields = split(",",$Line);
+	push (@XiMatrix, [@XiTableFileFields]);
+}
+$ColumnsOnXiTableFile = scalar@XiTableFileFields;
+$N = $ColumnsOnXiTableFile-1;
 
 #Loading the metadata file
 @MetaDataFile = ReadFile($MetaDataFileName);
