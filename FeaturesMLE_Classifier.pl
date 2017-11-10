@@ -3,7 +3,7 @@
 use List::MoreUtils qw(uniq);
 use Getopt::Long qw(GetOptions);
 Getopt::Long::Configure qw(gnu_getopt);
-use lib "/Users/rc/Bayes/lib";
+use lib "/Users/bioinformatica/Documents/Bayes/lib";
 use Routines;
 
 my($MainPath, $LinesOnTrainingFile, $Line, $ColumnsOnTrainingFile, $N, $MetaData,
@@ -21,7 +21,7 @@ my(%a, %b, %c, %d);
 my $TrainingMatrix = [ ];
 my $Report = [ ];
 
-$MainPath = "/Users/rc/Bayes";
+$MainPath = "/Users/bioinformatica/Documents/Bayes";
 $TrainingFileName = $MainPath ."/". "Training.csv";
 $MetaDataFileName = $MainPath ."/". 'MetaData.csv';
 $FeaturesMLE = $MainPath ."/". "MLE.csv";
@@ -135,27 +135,19 @@ for ($i=0; $i<$nClasses; $i++){
    $Report -> [0][$i+1] = $Class; 
    for ($j=1;$j<$LinesOnTrainingFile;$j++){
       $Feature = $TrainingMatrix[$j][0];
-      #$Feature = "a";
-      #$a{$Feature}{$Class} = $FeatureClass{$Feature}{$Class}; # hits de sonda a en clase a
-      #$b{$Feature}{$Class} = $FeatureTotalHits{$Feature}-$FeatureClass{$Feature}{$Class}; # Hits de sonda a que no están en clase A
-      #$c{$Feature}{$Class} = $Classes{$Class}-$FeatureClass{$Feature}{$Class}; # Numero de no hits en clase A (numero de ceros en clase A)
-      #$d{$Feature}{$Class} = ($N-$Classes{$Class})-($FeatureTotalHits{$Feature}-$FeatureClass{$Feature}{$Class}); # Numero de ceros fuera de A
 
-      $a= (($FeatureClass{$Feature}{$Class}))+1; # hits de sonda a en clase a
-      $b= (($FeatureTotalHits{$Feature}-$FeatureClass{$Feature}{$Class}))+1; # Hits de sonda a que no están en clase A
-      $c= (($Classes{$Class}-$FeatureClass{$Feature}{$Class}))+1; # Numero de no hits en clase A (numero de ceros en clase A)
-      $d= ((($N-$Classes{$Class})-($FeatureTotalHits{$Feature}-$FeatureClass{$Feature}{$Class})))+1; # Numero de ceros fuera de A
+      $a= (($FeatureClass{$Feature}{$Class}))+0.001; # hits de sonda a en clase a
+      $b= (($FeatureTotalHits{$Feature}-$FeatureClass{$Feature}{$Class}))+0.001; # Hits de sonda a que no están en clase A
+      $c= (($Classes{$Class}-$FeatureClass{$Feature}{$Class}))+0.001; # Numero de no hits en clase A (numero de ceros en clase A)
+      $d= ((($N-$Classes{$Class})-($FeatureTotalHits{$Feature}-$FeatureClass{$Feature}{$Class})))+0.001; # Numero de ceros fuera de A
       
-      #print "\na=$a\tb=$b\nc=$c\td=$d\n";
-      #exit;
+      $nConfusion = $a+$b+$c+$d;
       
-      $MLE{$Feature} = ($a/$N)*(log2(($N*$a)/(($a+$b)*($a+$c))))+
-                       ($b/$N)*(log2(($N*$b)/(($b+$a)*($b+$d))))+
-                       ($c/$N)*(log2(($N*$c)/(($c+$d)*($c+$a))))+
-                       ($d/$N)*(log2(($N*$d)/(($d+$c)*($d+$b))));
       
-      #print "\n$MLE{$Feature}\n";
-      #exit;
+      $MLE{$Feature} = (($a/$nConfusion)*(log2(($nConfusion*$a)/(($a+$b)*($a+$c)))))+
+                       (($b/$nConfusion)*(log2(($nConfusion*$b)/(($b+$a)*($b+$d)))))+
+                       (($c/$nConfusion)*(log2(($nConfusion*$c)/(($c+$d)*($c+$a)))))+
+                       (($d/$nConfusion)*(log2(($nConfusion*$d)/(($d+$c)*($d+$b)))));
       
       $Report -> [$j][0] = $Feature;
       $Report -> [$j][$iClass] = $MLE{$Feature};
