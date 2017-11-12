@@ -12,7 +12,7 @@ $Usage = "\nUSAGE\n  $FindBin::Script <Observed Data [Absolute Path]>
                             <Metadata [Absolute Path]>
                             <Output Path [Relative Path]>
                             <Pseudo Counts Increase [Integer]>
-                            <ChiSquared Test [Bolean]>
+                            <ChiSquare Test [Bolean]>
                             <Maximum Likelihood Estimation [Bolean]>\n\n";
 unless(@ARGV) {
         print $Usage;
@@ -30,10 +30,11 @@ $Chi2         = $ARGV[5];
 my($Test, $TestReport, $Plot, $RScript, $LinesOnTrainingFile, $nFeature, $Line,
    $ColumnsOnTrainingFile, $N, $LinesOnMetaDataFile, $ColumnsOnMetaDataFile,
    $PossibleClass, $Column, $Class, $nClasses, $Element, $GlobalHits, $Hit,
-   $Feature, $iClass, $a, $b, $c, $d, $nConfusion);
+   $Feature, $iClass, $a, $b, $c, $d, $nConfusion, $ChiConfidence);
 my($i, $j);
 my(@TrainingFile, @TrainingFileFields, @TrainingMatrix, @MetaDataFile,
-   @MetaDataFileFields, @MetaDataMatrix, @Classes, @Elements);
+   @MetaDataFileFields, @MetaDataMatrix, @Classes, @Elements, @ChiConfidence,
+   @ChiConfidences);
 my(%ClassOfElement, %Elements, %pClass, %cpClass, %ClassHits, %HitsOfFeaturesInClass,
    %TotalFeatureHits, %Test);
 my(%a, %b, %c, %d);
@@ -42,7 +43,7 @@ my $Report = [ ];
 if ($MLE == 1 && $Chi2 == 0){
    $Test = "MaximumLikelihoodEstimation";
 }elsif ($MLE == 0 && $Chi2 == 1){
-   $Test = "ChiSquared";
+   $Test = "ChiSquare";
 }else {
    print "\nYou should select only one test option (--Chi2 or --MLE)\n\tProgram finished!\n\n";
    exit;
@@ -110,7 +111,7 @@ for ($i=1; $i<$LinesOnTrainingFile; $i++){
 	for ($j=1; $j<$ColumnsOnTrainingFile; $j++){
 		$Hit = $TrainingMatrix[$i][$j];
 		if ($Hit != 0){
-			$GlobalHits++; #   <-------------------------------------- Total of hits
+			$GlobalHits++; #   <----------------------- Total of hits
 		}
 	}
 }
@@ -161,10 +162,10 @@ for ($i=0; $i<$nClasses; $i++){
          $Test{$Feature} = (($a/$nConfusion)*(log2(($nConfusion*$a)/(($a+$b)*($a+$c)))))+
                            (($b/$nConfusion)*(log2(($nConfusion*$b)/(($b+$a)*($b+$d)))))+
                            (($c/$nConfusion)*(log2(($nConfusion*$c)/(($c+$d)*($c+$a)))))+
-                           (($d/$nConfusion)*(log2(($nConfusion*$d)/(($d+$c)*($d+$b))))); 
+                           (($d/$nConfusion)*(log2(($nConfusion*$d)/(($d+$c)*($d+$b)))));
       }elsif ($Chi2 == 1){    # <------------------------------------ Chi squared
-         $Test{$Feature} = (($nConfusion*(($a*$d)-($b*$c))**2))/(($a+$c)*($a+$b)*($b+$d)*($c+$d));
-      }
+        $Test{$Feature} = (($nConfusion*(($a*$d)-($b*$c))**2))/(($a+$c)*($a+$b)*($b+$d)*($c+$d));
+      } 
       $Report -> [$j][0] = $Feature;
       $Report -> [$j][$iClass] = $Test{$Feature};
    }
@@ -191,7 +192,13 @@ open(RSCRIPT, ">$RScript");
    foreach $Class(@Classes){
       print RSCRIPT "+ geom_point(aes(y=$Class,color=\"$Class\"))";
    }
-   print RSCRIPT "+ labs(x=\"Features\", y=\"bits\", title= \"$Test\", color=\"Class\")";
+   if($Chi2 == 1){
+        @ChiConfidences = (0.9,0.95,0.975,0.99,0.999);
+        foreach $ChiConfidence(@ChiConfidences){
+                print RSCRIPT "+ geom_hline(aes(yintercept = qchisq($ChiConfidence, df=$nClasses-1), linetype=\"$ChiConfidence\"))";
+        }
+   }
+   print RSCRIPT "+ labs(x=\"Features\", y=\"bits\", title= \"$Test\", color=\"Class\", linetype=\"Confidence Intervals\")";
    if($N > 100){
       print RSCRIPT '+ theme(axis.text.x = element_text(angle = 90, size=4, hjust = 1))' . "\n";
    }
@@ -200,7 +207,7 @@ open(RSCRIPT, ">$RScript");
 close RSCRIPT;
 
 system ("R CMD BATCH $RScript");
-system ("rm $RScript $MainPath/*.Rout $MainPath/Rplots.pdf");
+system ("rm $RScript $OutPath/*.Rout $OutPath/Rplots.pdf");
 print "Done!\n\n";
 
 exit;
