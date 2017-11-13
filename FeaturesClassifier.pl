@@ -27,16 +27,17 @@ $MLE          = $ARGV[4];
 $Chi2         = $ARGV[5];
 
 
-my($Test, $TestReport, $Plot, $RScript, $LinesOnTrainingFile, $nFeature, $Line,
-   $ColumnsOnTrainingFile, $N, $LinesOnMetaDataFile, $ColumnsOnMetaDataFile,
-   $PossibleClass, $Column, $Class, $nClasses, $Element, $GlobalHits, $Hit,
-   $Feature, $iClass, $a, $b, $c, $d, $nConfusion, $ChiConfidence);
+my($Test, $TestReport, $Plot, $HeatMap, $PlotRScript, $LinesOnTrainingFile,
+   $nFeature, $Line, $ColumnsOnTrainingFile, $N, $LinesOnMetaDataFile,
+   $ColumnsOnMetaDataFile, $PossibleClass, $Column, $Class, $nClasses, $Element,
+   $GlobalHits, $Hit, $Feature, $iClass, $a, $b, $c, $d, $nConfusion,
+   $ChiConfidence, $Round, $HeatMapRScript);
 my($i, $j);
 my(@TrainingFile, @TrainingFileFields, @TrainingMatrix, @MetaDataFile,
    @MetaDataFileFields, @MetaDataMatrix, @Classes, @Elements, @ChiConfidence,
    @ChiConfidences);
-my(%ClassOfElement, %Elements, %pClass, %cpClass, %ClassHits, %HitsOfFeaturesInClass,
-   %TotalFeatureHits, %Test);
+my(%ClassOfElement, %Elements, %pClass, %cpClass, %ClassHits,
+   %HitsOfFeaturesInClass, %TotalFeatureHits, %Test);
 my(%a, %b, %c, %d);
 my $Report = [ ];
 
@@ -50,8 +51,11 @@ if ($MLE == 1 && $Chi2 == 0){
 }
 
 $TestReport = $OutPath ."/". $Test . ".csv";
-$Plot       = $OutPath ."/". $Test . "_plot.pdf";
-$RScript    = $OutPath ."/". "Script.R";
+$Plot       = $OutPath ."/". $Test . "_DotPlot.pdf";
+$HeatMap    = $OutPath ."/". $Test . "_HeatMap.png";
+$PlotRScript    = $OutPath ."/". "DotPlotScript.R";
+$HeatMapRScript = $OutPath ."/". "HeatMapScript.R";
+
 
 # Loading the bolean training file
 @TrainingFile = ReadFile($TrainingFile);
@@ -98,7 +102,7 @@ for ($i=0;$i<$nClasses;$i++){
 		$Class = $MetaDataMatrix[$j]->[1];
 		$ClassOfElement{$Element} = $Class;
 		if($Class eq $Classes[$i]){
-         $Elements{$Classes[$i]}++; #   <-------- Number of elements in each class
+                        $Elements{$Classes[$i]}++; #   <-------- Number of elements in each class
 		}
 	}
 	#$pClass{$Classes[$i]} = $Elements{$Classes[$i]}/$N; # Probability of each class
@@ -122,7 +126,7 @@ foreach $Class(@Classes){
 		$Element = $TrainingMatrix[0][$i];
 		if ($ClassOfElement{$Element} eq $Class){
 			for ($j=1;$j<$LinesOnTrainingFile;$j++){
-            $ClassHits{$Class} += $TrainingMatrix[$j][$i]+$PsCounts;  # <- Total of hits in class
+                                $ClassHits{$Class} += $TrainingMatrix[$j][$i]+$PsCounts;  # <- Total of hits in class
 			}
 		}
 	}
@@ -132,10 +136,10 @@ foreach $Class(@Classes){
 foreach $Class(@Classes){
 	for ($i=1;$i<$LinesOnTrainingFile;$i++){
 		$Feature = $TrainingMatrix[$i][0];
-      $TotalFeatureHits{$Feature} = 0;
+                $TotalFeatureHits{$Feature} = 0;
 		for ($j=1;$j<$ColumnsOnTrainingFile; $j++){         
 			$Element = $TrainingMatrix[0][$j];
-         $TotalFeatureHits{$Feature} += $TrainingMatrix[$i][$j]+$PsCounts; # <- Total Feature Hits
+                        $TotalFeatureHits{$Feature} += $TrainingMatrix[$i][$j]+$PsCounts; # <- Total Feature Hits
 			if ($ClassOfElement{$Element} eq $Class){
 				$HitsOfFeaturesInClass{$Feature}{$Class} += $TrainingMatrix[$i][$j]+$PsCounts; # <- Total Feature Hits in Class
 			}
@@ -176,16 +180,22 @@ for ($i=0; $i<$nClasses; $i++){
 open (FILE, ">$TestReport");
 for ($i=0;$i<$LinesOnTrainingFile;$i++){
    for ($j=0;$j<5;$j++){
-      print FILE $Report -> [$i][$j], ",";
+        if($j < 4){
+                print FILE $Report -> [$i][$j], ",";
+        }elsif($j == 4){
+                print FILE $Report -> [$i][$j];
+        }
    }
    print FILE "\n";
 }
 close FILE;
 
-# Building plot
-print "\n Building Plot...";
+# Building dot plot
+print "\n Building Plots...";
 chdir($OutPath);
-open(RSCRIPT, ">$RScript");
+
+# Dot plot
+open(RSCRIPT, ">$PlotRScript");
    print RSCRIPT 'library(ggplot2)' . "\n";
    print RSCRIPT "df <- read.csv(\"$TestReport\")" . "\n";
    print RSCRIPT 'ggplot(df, aes(Feature))';
@@ -203,11 +213,54 @@ open(RSCRIPT, ">$RScript");
       print RSCRIPT '+ theme(axis.text.x = element_text(angle = 90, size=4, hjust = 1))' . "\n";
    }
    print RSCRIPT "\n";
-   print RSCRIPT "ggsave(\"$Plot\")";
+   print RSCRIPT "ggsave(\"$Plot\")" . "\n";
+   
+close RSCRIPT;
+system ("R CMD BATCH $PlotRScript");
+   
+# Heat Map;
+open(RSCRIPT, ">$HeatMapRScript");
+   print RSCRIPT 'library(gplots)' . "\n";
+   print RSCRIPT 'library(RColorBrewer)' . "\n";
+   print RSCRIPT 'rnames <- df[,1]' . "\n";
+   print RSCRIPT 'mat_data <- data.matrix(df[,2:ncol(df)])' . "\n";
+   print RSCRIPT 'rownames(mat_data) <- rnames' . "\n";
+   
+   print RSCRIPT 'Colors <- colorRampPalette(c("red", "yellow", "green"))(n=299)' . "\n";
+   if ($nClasses < 5){
+        $Round = 5;
+   }
+   
+   print RSCRIPT "png(\"$HeatMap\"," . "\n";
+   print RSCRIPT "width = 5*300," . "\n";
+   print RSCRIPT "height = 5*300," . "\n";
+   print RSCRIPT "res = 300," . "\n";
+   print RSCRIPT "pointsize = 8)" . "\n";
+   
+   print RSCRIPT 'heatmap.2(mat_data,' . "\n";                    
+   print RSCRIPT "cellnote = round(mat_data,$Round)," . "\n"; # Shows data in cell 
+   print RSCRIPT "main = \"$Test\"," . "\n";                  # Title
+   print RSCRIPT 'xlab = "Class",' . "\n";
+   print RSCRIPT 'ylab = "Feature",' . "\n";
+   print RSCRIPT 'keysize = 0.8,' . "\n";
+   print RSCRIPT 'key.title = "Confidence",' . "\n";
+   print RSCRIPT 'key.xlab = "Probability",' . "\n";
+   print RSCRIPT 'density.info="none",' . "\n";                # Turns of density plot un legend
+   print RSCRIPT 'notecol = "black",' . "\n";                  # font of cell labels in black
+   print RSCRIPT 'trace = "none",' . "\n";                     # Turns of trace lines in heat map
+   print RSCRIPT 'col = Colors,' . "\n";                       # Use defined palette
+   print RSCRIPT 'dendrogram = "none",' ."\n";                 # Hides dendrogram
+   print RSCRIPT 'Colv = "NA",' . "\n";                        # Turn off column sort
+   print RSCRIPT 'Rowv = "NA")' . "\n";                        # Turn off row sort
+   
+   print RSCRIPT 'dev.off()';
 close RSCRIPT;
 
-system ("R CMD BATCH $RScript");
-system ("rm $RScript $OutPath/*.Rout $OutPath/Rplots.pdf");
+system ("R CMD BATCH $HeatMapRScript");
+
+system ("rm $PlotRScript $HeatMapRScript $OutPath/*.Rout $OutPath/Rplots.pdf");
 print "Done!\n\n";
 
 exit;
+
+
