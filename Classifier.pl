@@ -1,18 +1,24 @@
 #!/usr/bin/perl -w
 use strict;
-use List::MoreUtils qw(uniq);
+use Getopt::Long qw(GetOptions);
 use FindBin;
 use lib "$FindBin::Bin/lib";
 use Routines;
 my $MainPath = "$FindBin::Bin";
 
-my ($Help, $TrainingFile, $MetadataFile, $QryFile, $OutPath, $PsCounts, $Stat, $MLE, $Chi2);
+my $Usage = "USAGE:\n  $0 [--help] [options] [--training -t Absolute File] [--metadata -m File]
+      [--query -q File] [--out Path] [--bayes --mle --chi2]
+\n  Use \'--help\' to print detailed descriptions of options.\n\n";
 
-$Stat     = 0;
+my ($Help, $TrainingFile, $MetadataFile, $QryFile, $OutPath, $Bayes, $PsCounts,
+    $Stat, $MLE, $Chi2);
+
+$Bayes    = 0;
 $MLE      = 0;
 $Chi2     = 0;
+$Stat     = 0;
 $PsCounts = 0;
-$OutPath = $MainPath;
+$OutPath  = $MainPath;
 
 GetOptions(
         'help'              => \$Help,
@@ -20,13 +26,12 @@ GetOptions(
         'metadata|m:s'      => \$MetadataFile,
         'query|q:s'         => \$QryFile,
         'out|o:s'           => \$OutPath,
-        'pseudo-counts|c:i' => \$PsCounts,
-        'stat|s'            => \$Stat,
+        'bayes'             => \$Bayes,
         'mle'               => \$MLE,
         'chi2'              => \$Chi2,
-        ) or die "USAGE:\n  $0 [--help] [options] [--training -t Absolute File] [--metadata -m File]
-      [--query -q File] [--out Path]
-\n  Use \'--help\' to print detailed descriptions of options.\n\n";
+        'pseudo-counts|c:i' => \$PsCounts,
+        'stat|s'            => \$Stat,
+        ) or die $Usage;
 
 if($Help){
         print "
@@ -42,6 +47,46 @@ if($Help){
         exit;
 }
 
-if
+my ($BayesPrediction, $TestClassifier, $Start, $End, $Time, $RunTime, $Period);
+
+$Start = time();
+
+if(defined $TrainingFile && defined $MetadataFile){
+
+   $BayesPrediction  = $MainPath ."/". "BayesianClassifier.pl";
+   $TestClassifier   = $MainPath ."/". "FeaturesClassifier.pl";
+
+   if($Bayes == 1){
+      if(defined $QryFile){
+         system("perl $BayesPrediction $TrainingFile $MetadataFile $QryFile $OutPath $Stat $PsCounts");
+      }else{
+         print "\nA bolean query file is needed! \n $Usage";
+      }
+   }elsif($Bayes == 0 && $MLE == 1 or $Chi2 == 1){
+      system("perl $TestClassifier $TrainingFile $MetadataFile $OutPath $PsCounts $MLE $Chi2");
+   }else{
+      print "\nYou must to select at least but one statistic test (--bayes, --mle or --chi2)\n";
+      print "\tFinished\n";
+      exit;
+   }
+}else{
+   print "\nA bolean training and a metadata files are needed! \n $Usage";
+}
+
+$End = time();
+$Time = ($End-$Start);
+if ($Time < 3600){
+        $RunTime = ($Time)/60;
+        $Period = "minutes";
+}elsif ($Time >= 3600 && $Time < 86400){
+        $RunTime = (($Time)/60)/60;
+        $Period = "hours";
+}elsif ($Time >= 86400){
+        $RunTime = ((($Time)/60)/60)/24;
+        $Period = "days";
+}
+
+print "\n\tFinished! The estimation took $RunTime $Period\n\n";
+exit;
 
 
