@@ -64,6 +64,7 @@ $nFeature = $LinesOnTrainingFile-1;
 for ($i=0; $i<$LinesOnTrainingFile; $i++){
 	$Line = $TrainingFile[$i];
 	@TrainingFileFields = split(",",$Line);
+        chomp @TrainingFileFields;
 	push (@TrainingMatrix, [@TrainingFileFields]);
 }
 $ColumnsOnTrainingFile = scalar@TrainingFileFields;
@@ -75,6 +76,7 @@ $LinesOnMetaDataFile = scalar@MetaDataFile;
 for ($i=0; $i<$LinesOnMetaDataFile; $i++){
 	$Line = $MetaDataFile[$i];
 	@MetaDataFileFields = split(",",$Line);
+        chomp @MetaDataFileFields;
 	push (@MetaDataMatrix, [@MetaDataFileFields]);
 }
 $ColumnsOnMetaDataFile = scalar@MetaDataFileFields;
@@ -97,8 +99,9 @@ for ($i=1;$i<$LinesOnMetaDataFile;$i++){
 $nClasses = scalar@Classes;
 
 for ($i=0;$i<$nClasses;$i++){
-	for ($j=1;$j<$LinesOnMetaDataFile;$j++){
-		$Element = $MetaDataMatrix[$j]->[0];
+	#for ($j=1;$j<$LinesOnMetaDataFile;$j++){
+        for ($j=1;$j<$ColumnsOnTrainingFile;$j++){
+		$Element = $TrainingMatrix[0]->[$j];
 		$Class = $MetaDataMatrix[$j]->[1];
 		$ClassOfElement{$Element} = $Class;
 		if($Class eq $Classes[$i]){
@@ -123,7 +126,7 @@ for ($i=1; $i<$LinesOnTrainingFile; $i++){
 #Hits of each class
 foreach $Class(@Classes){
 	for ($i=1;$i<$ColumnsOnTrainingFile; $i++){
-		$Element = $TrainingMatrix[0][$i];
+		$Element = "$TrainingMatrix[0][$i]";
 		if ($ClassOfElement{$Element} eq $Class){
 			for ($j=1;$j<$LinesOnTrainingFile;$j++){
                                 $ClassHits{$Class} += $TrainingMatrix[$j][$i]+$PsCounts;  # <- Total of hits in class
@@ -219,12 +222,18 @@ close RSCRIPT;
 system ("R CMD BATCH $PlotRScript");
    
 # Heat Map;
+
 open(RSCRIPT, ">$HeatMapRScript");
    print RSCRIPT 'library(gplots)' . "\n";
    print RSCRIPT 'library(RColorBrewer)' . "\n";
+   print RSCRIPT "df <- read.csv(\"$TestReport\")" . "\n";
    print RSCRIPT 'rnames <- df[,1]' . "\n";
    print RSCRIPT 'mat_data <- data.matrix(df[,2:ncol(df)])' . "\n";
+   #print RSCRIPT 'cor_mat_data <- cor(mat_data)' . "\n";
    print RSCRIPT 'rownames(mat_data) <- rnames' . "\n";
+   
+   #print RSCRIPT 'distance = dist(cor_mat_data, method = "manhattan")' . "\n";
+   #print RSCRIPT 'cluster = hclust(distance, method = "ward")' . "\n";
    
    print RSCRIPT 'Colors <- colorRampPalette(c("red", "yellow", "green"))(n=299)' . "\n";
    if ($nClasses < 5){
@@ -238,20 +247,26 @@ open(RSCRIPT, ">$HeatMapRScript");
    print RSCRIPT "pointsize = 8)" . "\n";
    
    print RSCRIPT 'heatmap.2(mat_data,' . "\n";                    
-   print RSCRIPT "cellnote = round(mat_data,$Round)," . "\n"; # Shows data in cell 
+   #print RSCRIPT "cellnote = round(mat_data,$Round)," . "\n"; # Shows data in cell 
    print RSCRIPT "main = \"$Test\"," . "\n";                  # Title
    print RSCRIPT 'xlab = "Class",' . "\n";
    print RSCRIPT 'ylab = "Feature",' . "\n";
    print RSCRIPT 'keysize = 0.8,' . "\n";
    print RSCRIPT 'key.title = "Confidence",' . "\n";
-   print RSCRIPT 'key.xlab = "Probability",' . "\n";
+   print RSCRIPT 'key.xlab = "Key",' . "\n";
    print RSCRIPT 'density.info="none",' . "\n";                # Turns of density plot un legend
    print RSCRIPT 'notecol = "black",' . "\n";                  # font of cell labels in black
    print RSCRIPT 'trace = "none",' . "\n";                     # Turns of trace lines in heat map
-   print RSCRIPT 'col = Colors,' . "\n";                       # Use defined palette
+
    print RSCRIPT 'dendrogram = "none",' ."\n";                 # Hides dendrogram
    print RSCRIPT 'Colv = "NA",' . "\n";                        # Turn off column sort
-   print RSCRIPT 'Rowv = "NA")' . "\n";                        # Turn off row sort
+   print RSCRIPT 'Rowv = "NA",' . "\n";                        # Turn off row sort
+   #print RSCRIPT 'Rowv = as.dendrogram(cluster),' . "\n";      # apply default clustering method'
+   #print RSCRIPT 'Colv = as.dendrogram(cluster),' . "\n";      # apply default clustering method
+   print RSCRIPT 'col = Colors)' . "\n";                       # Use defined palette
+
+
+
    
    print RSCRIPT 'dev.off()';
 close RSCRIPT;
