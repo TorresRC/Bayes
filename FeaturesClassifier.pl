@@ -6,7 +6,7 @@ use lib "$FindBin::Bin/lib";
 use Routines;
 my $MainPath = "$FindBin::Bin";
 
-my ($Usage, $TrainingFile, $MetadataFile, $OutPath, $Chi2, $MLE, $PsCounts);
+my ($Usage, $TrainingFile, $MetadataFile, $OutPath, $Chi2, $MLE, $OddsR, $PsCounts);
 
 $Usage = "\nUSAGE\n  $FindBin::Script <Observed Data [Absolute Path]>
                             <Metadata [Absolute Path]>
@@ -25,6 +25,7 @@ $OutPath      = $ARGV[2];
 $PsCounts     = $ARGV[3];
 $MLE          = $ARGV[4];
 $Chi2         = $ARGV[5];
+$OddsR        = $ARGV[6];
 
 
 my($Test, $TestReport, $Plot, $HeatMap, $PlotRScript, $LinesOnTrainingFile,
@@ -41,12 +42,14 @@ my(%ClassOfElement, %Elements, %pClass, %cpClass, %ClassHits,
 my(%a, %b, %c, %d);
 my $Report = [ ];
 
-if ($MLE == 1 && $Chi2 == 0){
+if ($MLE == 1 && $Chi2 == 0 && $OddsR == 0){
    $Test = "MaximumLikelihoodEstimation";
-}elsif ($MLE == 0 && $Chi2 == 1){
+}elsif ($MLE == 0 && $OddsR == 0 && $Chi2 == 1){
    $Test = "ChiSquare";
+}elsif ($MLE == 0 && $Chi2 == 0 && $OddsR == 1){
+   $Test = "OddsRates";
 }else {
-   print "\nYou should select only one test option (--Chi2 or --MLE)\n\tProgram finished!\n\n";
+   print "\nYou should select only one test option (--Chi2, --MLE or --OddsR)\n\tProgram finished!\n\n";
    exit;
 }
 
@@ -172,7 +175,13 @@ for ($i=0; $i<$nClasses; $i++){
                            (($d/$nConfusion)*(log2(($nConfusion*$d)/(($d+$c)*($d+$b)))));
       }elsif ($Chi2 == 1){    # <------------------------------------ Chi squared
         $Test{$Feature} = (($nConfusion*(($a*$d)-($b*$c))**2))/(($a+$c)*($a+$b)*($b+$d)*($c+$d));
-      } 
+      }elsif ($OddsR == 1){
+        $Test{$Feature} = log((($a/($a+$c))*(1-$b/($b+$d)))/((($b/($b+$d))*(1-$a/($a+$c)))));
+      }
+      
+      
+      
+      
       $Report -> [$j][0] = $Feature;
       $Report -> [$j][$iClass] = $Test{$Feature};
    }
@@ -197,7 +206,7 @@ close FILE;
 print "\n Building Plots...";
 chdir($OutPath);
 
-# Dot plot
+# Dot plot all clases
 open(RSCRIPT, ">$PlotRScript");
    print RSCRIPT 'library(ggplot2)' . "\n";
    print RSCRIPT "df <- read.csv(\"$TestReport\")" . "\n";
@@ -220,6 +229,33 @@ open(RSCRIPT, ">$PlotRScript");
    
 close RSCRIPT;
 system ("R CMD BATCH $PlotRScript");
+
+# Dot plot for class
+foreach $Class(@Classes){
+        my $ClassPlotRScript = $OutPath ."/". $Class . "_DotPlotScript.R";
+        my $ClassPlot = $OutPath ."/". $Test ."_". $Class . "_DotPlot.pdf";
+        open(FILE, ">$ClassPlotRScript");
+           print FILE 'library(ggplot2)' . "\n";
+           print FILE "df <- read.csv(\"$TestReport\")" . "\n";
+           print FILE 'ggplot(df, aes(Feature))';
+           print FILE "+ geom_point(aes(y=$Class,color=\"$Class\"))";
+           if($Chi2 == 1){
+                @ChiConfidences = (0.9,0.95,0.975,0.99,0.999);
+                foreach $ChiConfidence(@ChiConfidences){
+                        print FILE "+ geom_hline(aes(yintercept = qchisq($ChiConfidence, df=$nClasses-1), linetype=\"$ChiConfidence\"))";
+                }
+           }
+           print FILE "+ labs(x=\"Features\", y=\"bits\", title= \"$Test\", color=\"Class\", linetype=\"Confidence Intervals\")";
+           if($N > 100){
+              print FILE '+ theme(axis.text.x = element_text(angle = 90, size=4, hjust = 1))' . "\n";
+           }
+           print FILE "\n";
+           print FILE "ggsave(\"$ClassPlot\")" . "\n";
+   
+        close FILE;
+        system ("R CMD BATCH $ClassPlotRScript");
+}
+
    
 # Heat Map;
 
