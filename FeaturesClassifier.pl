@@ -6,7 +6,7 @@ use lib "$FindBin::Bin/lib";
 use Routines;
 my $MainPath = "$FindBin::Bin";
 
-my ($Usage, $TrainingFile, $MetadataFile, $OutPath, $Chi2, $MLE, $OddsR, $PsCounts);
+my ($Usage, $TrainingFile, $MetadataFile, $OutPath, $Chi2, $IG, $OddsR, $PsCounts, $MI);
 
 $Usage = "\nUSAGE\n  $FindBin::Script <Observed Data [Absolute Path]>
                             <Metadata [Absolute Path]>
@@ -23,9 +23,10 @@ $TrainingFile = $ARGV[0];
 $MetadataFile = $ARGV[1];
 $OutPath      = $ARGV[2];
 $PsCounts     = $ARGV[3];
-$MLE          = $ARGV[4];
+$IG           = $ARGV[4];
 $Chi2         = $ARGV[5];
 $OddsR        = $ARGV[6];
+$MI           = $ARGV[7];
 
 
 my($Test, $TestReport, $Plot, $HeatMap, $PlotRScript, $LinesOnTrainingFile,
@@ -42,12 +43,14 @@ my(%ClassOfElement, %Elements, %pClass, %cpClass, %ClassHits,
 my(%a, %b, %c, %d);
 my $Report = [ ];
 
-if ($MLE == 1 && $Chi2 == 0 && $OddsR == 0){
-   $Test = "MaximumLikelihoodEstimation";
-}elsif ($MLE == 0 && $OddsR == 0 && $Chi2 == 1){
+if ($IG == 1 && $Chi2 == 0 && $OddsR == 0 && $MI == 0){
+   $Test = "Information Gain";
+}elsif ($IG == 0 && $Chi2 == 1 && $OddsR == 0 && $MI == 0){
    $Test = "ChiSquare";
-}elsif ($MLE == 0 && $Chi2 == 0 && $OddsR == 1){
-   $Test = "OddsRates";
+}elsif ($IG == 0 && $Chi2 == 0 && $OddsR == 1 && $MI == 0){
+   $Test = "OddsRatio";
+}elsif ($IG == 0 && $Chi2 == 0 && $OddsR == 0 && $MI == 1){
+   $Test = "Mutual Information";
 }else {
    print "\nYou should select only one test option (--Chi2, --MLE or --OddsR)\n\tProgram finished!\n\n";
    exit;
@@ -111,8 +114,6 @@ for ($i=0;$i<$nClasses;$i++){
                         $Elements{$Classes[$i]}++; #   <-------- Number of elements in each class
 		}
 	}
-	#$pClass{$Classes[$i]} = $Elements{$Classes[$i]}/$N; # Probability of each class
-	#$cpClass{$Classes[$i]} = 1-$Elements{$Classes[$i]}/$N; # Complement probability of each class
 }
 
 # Hits into the training matrix
@@ -167,20 +168,23 @@ for ($i=0; $i<$nClasses; $i++){
       $c= (($Elements{$Class}-$HitsOfFeaturesInClass{$Feature}{$Class}))+0.001; # Numero de mismaches en clase A (numero de ceros en clase A)
       $d= ((($N-$Elements{$Class})-($TotalFeatureHits{$Feature}-$HitsOfFeaturesInClass{$Feature}{$Class})))+0.001; # Numero de ceros fuera de A
       $nConfusion = $a+$b+$c+$d;
-      
-      if ($MLE == 1){         # <------------------ Maximum Likelihood Estimation
-         $Test{$Feature} = (($a/$nConfusion)*(log2(($nConfusion*$a)/(($a+$b)*($a+$c)))))+
-                           (($b/$nConfusion)*(log2(($nConfusion*$b)/(($b+$a)*($b+$d)))))+
-                           (($c/$nConfusion)*(log2(($nConfusion*$c)/(($c+$d)*($c+$a)))))+
-                           (($d/$nConfusion)*(log2(($nConfusion*$d)/(($d+$c)*($d+$b)))));
+            
+      if ($IG == 1){         # <------------------ Maximum Likelihood Estimation -- Information Gain
+         $Test{$Feature} = ((-1*(($a+$c)/$nConfusion))*log10(($a+$c)/$nConfusion))+
+                           (($a/$nConfusion)*log10($a/($a+$b)))+
+                           (($c/$nConfusion)*log10($c/($c+$d)));
+         
+                           #(($a/$nConfusion)*(log2(($nConfusion*$a)/(($a+$b)*($a+$c)))))+
+                           #(($c/$nConfusion)*(log2(($nConfusion*$c)/(($c+$d)*($c+$a)))))+
+                           #(($b/$nConfusion)*(log2(($nConfusion*$b)/(($b+$a)*($b+$d)))))+
+                           #(($d/$nConfusion)*(log2(($nConfusion*$d)/(($d+$c)*($d+$b)))));
       }elsif ($Chi2 == 1){    # <------------------------------------ Chi squared
         $Test{$Feature} = (($nConfusion*(($a*$d)-($b*$c))**2))/(($a+$c)*($a+$b)*($b+$d)*($c+$d));
       }elsif ($OddsR == 1){
-        $Test{$Feature} = log((($a/($a+$c))*(1-$b/($b+$d)))/((($b/($b+$d))*(1-$a/($a+$c)))));
+        $Test{$Feature} = log10(($a*$d)/($b*$c));
+      }elsif ($MI == 1){      # Mutual information
+         $Test{$Feature} = log10(($a*$nConfusion)/(($a+$b)*($a+$c)));
       }
-      
-      
-      
       
       $Report -> [$j][0] = $Feature;
       $Report -> [$j][$iClass] = $Test{$Feature};
@@ -265,7 +269,7 @@ open(RSCRIPT, ">$HeatMapRScript");
    print RSCRIPT "df <- read.csv(\"$TestReport\")" . "\n";
    print RSCRIPT 'rnames <- df[,1]' . "\n";
    print RSCRIPT 'mat_data <- data.matrix(df[,2:ncol(df)])' . "\n";
-   #print RSCRIPT 'cor_mat_data <- cor(mat_data)' . "\n";
+   print RSCRIPT 'cor_mat_data <- cor(mat_data)' . "\n";
    print RSCRIPT 'rownames(mat_data) <- rnames' . "\n";
    
    #print RSCRIPT 'distance = dist(cor_mat_data, method = "manhattan")' . "\n";
@@ -282,7 +286,7 @@ open(RSCRIPT, ">$HeatMapRScript");
    print RSCRIPT "res = 300," . "\n";
    print RSCRIPT "pointsize = 8)" . "\n";
    
-   print RSCRIPT 'heatmap.2(mat_data,' . "\n";                    
+   print RSCRIPT 'heatmap.2(cor_mat_data,' . "\n";                    
    #print RSCRIPT "cellnote = round(mat_data,$Round)," . "\n"; # Shows data in cell 
    print RSCRIPT "main = \"$Test\"," . "\n";                  # Title
    print RSCRIPT 'xlab = "Class",' . "\n";
@@ -294,24 +298,19 @@ open(RSCRIPT, ">$HeatMapRScript");
    print RSCRIPT 'notecol = "black",' . "\n";                  # font of cell labels in black
    print RSCRIPT 'trace = "none",' . "\n";                     # Turns of trace lines in heat map
 
-   print RSCRIPT 'dendrogram = "none",' ."\n";                 # Hides dendrogram
-   print RSCRIPT 'Colv = "NA",' . "\n";                        # Turn off column sort
-   print RSCRIPT 'Rowv = "NA",' . "\n";                        # Turn off row sort
+   print RSCRIPT 'dendrogram = "row",' ."\n";                 # Hides dendrogram
+   #print RSCRIPT 'Colv = "NA",' . "\n";                        # Turn off column sort
+   #print RSCRIPT 'Rowv = "NA",' . "\n";                        # Turn off row sort
    #print RSCRIPT 'Rowv = as.dendrogram(cluster),' . "\n";      # apply default clustering method'
    #print RSCRIPT 'Colv = as.dendrogram(cluster),' . "\n";      # apply default clustering method
    print RSCRIPT 'col = Colors)' . "\n";                       # Use defined palette
 
-
-
-   
    print RSCRIPT 'dev.off()';
 close RSCRIPT;
 
 system ("R CMD BATCH $HeatMapRScript");
 
-system ("rm $PlotRScript $HeatMapRScript $OutPath/*.Rout $OutPath/Rplots.pdf");
+#system ("rm $PlotRScript $HeatMapRScript $OutPath/*.Rout $OutPath/Rplots.pdf");
 print "Done!\n\n";
 
 exit;
-
-
