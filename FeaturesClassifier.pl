@@ -11,7 +11,7 @@ use lib "$FindBin::Bin/lib";
 use Routines;
 my $MainPath = "$FindBin::Bin";
 
-my ($Usage, $TrainingFile, $MetadataFile, $OutPath, $Chi2, $IG, $OddsR, $PsCounts,
+my ($Usage, $TrainingFile, $MetadataFile, $OutPath, $Method, $Chi2, $IG, $OddsR, $PsCounts,
     $MI, $AllClassesPlot, $ForClassPlot, $HeatMapPlot, $Correlation, $Sort,
     $Clusters, $Dendrogram);
 
@@ -30,17 +30,18 @@ $TrainingFile   = $ARGV[0];
 $MetadataFile   = $ARGV[1];
 $OutPath        = $ARGV[2];
 $PsCounts       = $ARGV[3];
-$IG             = $ARGV[4];
-$Chi2           = $ARGV[5];
-$OddsR          = $ARGV[6];
-$MI             = $ARGV[7];
-$AllClassesPlot = $ARGV[8];
-$ForClassPlot   = $ARGV[9];
-$HeatMapPlot    = $ARGV[10];
-$Correlation    = $ARGV[11];
-$Sort           = $ARGV[12];
-$Clusters       = $ARGV[13];
-$Dendrogram     = $ARGV[14];
+$Method         = $ARGV[4];  # <- Chi2, IG, OddsR, MI
+#$IG             = $ARGV[4];
+#$Chi2           = $ARGV[5];
+#$OddsR          = $ARGV[6];
+#$MI             = $ARGV[7];
+$AllClassesPlot = $ARGV[5];
+$ForClassPlot   = $ARGV[6];
+$HeatMapPlot    = $ARGV[7];
+$Correlation    = $ARGV[8];
+$Sort           = $ARGV[9];
+$Clusters       = $ARGV[10];
+$Dendrogram     = $ARGV[11];
 
 my($Test, $TestReport, $Plot, $HeatMap, $PlotRScript, $LinesOnTrainingFile,
    $nFeature, $Line, $ColumnsOnTrainingFile, $N, $LinesOnMetaDataFile,
@@ -56,13 +57,13 @@ my(%ClassOfElement, %Elements, %pClass, %cpClass, %ClassHits,
 my(%a, %b, %c, %d);
 my $Report = [ ];
 
-if ($IG == 1 && $Chi2 == 0 && $OddsR == 0 && $MI == 0){
+if ($Method eq "IG"){
    $Test = "Information Gain";
-}elsif ($IG == 0 && $Chi2 == 1 && $OddsR == 0 && $MI == 0){
+}elsif ($Method eq "Chi2"){
    $Test = "ChiSquare";
-}elsif ($IG == 0 && $Chi2 == 0 && $OddsR == 1 && $MI == 0){
+}elsif ($Method eq "OddsR"){
    $Test = "OddsRatio";
-}elsif ($IG == 0 && $Chi2 == 0 && $OddsR == 0 && $MI == 1){
+}elsif ($Method eq "MI"){
    $Test = "Mutual Information";
 }else {
    print "\nYou should select only one test option (--Chi2, --MLE or --OddsR)\n\tProgram finished!\n\n";
@@ -182,7 +183,7 @@ for ($i=0; $i<$nClasses; $i++){
       $d= ((($N-$Elements{$Class})-($TotalFeatureHits{$Feature}-$HitsOfFeaturesInClass{$Feature}{$Class})))+0.001; # Numero de ceros fuera de A
       $nConfusion = $a+$b+$c+$d;
             
-      if ($IG == 1){         # <------------------ Maximum Likelihood Estimation -- Information Gain
+      if ($Method eq "IG"){         # <------------------ Maximum Likelihood Estimation -- Information Gain
          $Test{$Feature} = ((-1*(($a+$c)/$nConfusion))*log10(($a+$c)/$nConfusion))+
                            (($a/$nConfusion)*log10($a/($a+$b)))+
                            (($c/$nConfusion)*log10($c/($c+$d)));
@@ -191,11 +192,11 @@ for ($i=0; $i<$nClasses; $i++){
                            #(($c/$nConfusion)*(log2(($nConfusion*$c)/(($c+$d)*($c+$a)))))+
                            #(($b/$nConfusion)*(log2(($nConfusion*$b)/(($b+$a)*($b+$d)))))+
                            #(($d/$nConfusion)*(log2(($nConfusion*$d)/(($d+$c)*($d+$b)))));
-      }elsif ($Chi2 == 1){    # <------------------------------------ Chi squared
+      }elsif ($Method eq "Chi2"){    # <------------------------------------ Chi squared
         $Test{$Feature} = (($nConfusion*(($a*$d)-($b*$c))**2))/(($a+$c)*($a+$b)*($b+$d)*($c+$d));
-      }elsif ($OddsR == 1){
+      }elsif ($Method eq "OddsR"){
         $Test{$Feature} = log10(($a*$d)/($b*$c));
-      }elsif ($MI == 1){      # Mutual information
+      }elsif ($Method eq "MI"){      # Mutual information
          $Test{$Feature} = log10(($a*$nConfusion)/(($a+$b)*($a+$c)));
       }
       
@@ -232,7 +233,7 @@ if ($AllClassesPlot eq "on"){
                 foreach $Class(@Classes){
                         print RSCRIPT "+ geom_point(aes(y=$Class,color=\"$Class\"))";
                 }
-                if($Chi2 == 1){
+                if($Method eq "Chi2"){
                         @ChiConfidences = (0.9,0.95,0.975,0.99,0.999);
                         foreach $ChiConfidence(@ChiConfidences){
                                 print RSCRIPT "+ geom_hline(aes(yintercept = qchisq($ChiConfidence, df=$nClasses-1), linetype=\"$ChiConfidence\"))";
@@ -260,7 +261,7 @@ if ($ForClassPlot eq "on"){
                         print FILE "df <- read.csv(\"$TestReport\")" . "\n";
                         print FILE 'ggplot(df, aes(Feature))';
                         print FILE "+ geom_point(aes(y=$Class,color=\"$Class\"))";
-                        if($Chi2 == 1){
+                        if($Method eq "Chi2"){
                                 @ChiConfidences = (0.9,0.95,0.975,0.99,0.999);
                                 foreach $ChiConfidence(@ChiConfidences){
                                         print FILE "+ geom_hline(aes(yintercept = qchisq($ChiConfidence, df=$nClasses-1), linetype=\"$ChiConfidence\"))";
@@ -302,15 +303,16 @@ if ($HeatMapPlot eq "on"){
                 print RSCRIPT "$Matrix <- data.matrix(df[,2:ncol(df)])" . "\n";
                 print RSCRIPT "rownames($Matrix) <- rnames" . "\n";
                 
+                
+
+                
                 if ($Correlation eq "on"){
                         print RSCRIPT "$Matrix <- cor($Matrix)" . "\n";
                 }
-                
+
                 print RSCRIPT "heatmap.2($Matrix," . "\n";
                  
                 print RSCRIPT "main = \"$Test\"," . "\n";                  # Title
-                print RSCRIPT 'xlab = "Class",' . "\n";
-                print RSCRIPT 'ylab = "Feature",' . "\n";
                 print RSCRIPT 'keysize = 0.8,' . "\n";
                 print RSCRIPT 'key.title = "Confidence",' . "\n";
                 print RSCRIPT 'key.xlab = "Key",' . "\n";
@@ -318,9 +320,20 @@ if ($HeatMapPlot eq "on"){
                 print RSCRIPT 'notecol = "black",' . "\n";                  # font of cell labels in black
                 print RSCRIPT 'trace = "none",' . "\n";                     # Turns of trace lines in heat map
                 
-                if ($nClasses < 11 && $nFeature < 101){
-                        $Round = 5;
+                $Round = 5;
+                if ($Correlation eq "on"){
+                        print RSCRIPT 'xlab = "Class",' . "\n";
+                        print RSCRIPT 'ylab = "Class",' . "\n";
                         print RSCRIPT "cellnote = round($Matrix,$Round)," . "\n"; # Shows data in cell
+                        print RSCRIPT 'srtRow= 90,' ."\n";
+                        print RSCRIPT 'adjRow= c (0.5,1),' ."\n";
+                        print RSCRIPT 'cexRow=0.8,' ."\n";
+                }else{
+                        print RSCRIPT 'xlab = "Class",' . "\n";
+                        print RSCRIPT 'ylab = "Feature",' . "\n";
+                        if ($nClasses < 11 && $nFeature < 101){
+                                print RSCRIPT "cellnote = round($Matrix,$Round)," . "\n"; # Shows data in cell
+                        }
                 }
                        
                 if ($Sort eq "off"){
@@ -344,6 +357,10 @@ if ($HeatMapPlot eq "on"){
                 }elsif($Dendrogram eq "both"){
                         print RSCRIPT 'dendrogram = "both",' ."\n";
                 }
+                
+                print RSCRIPT 'srtCol= 0,' ."\n";
+                print RSCRIPT 'adjCol= c (0.5,1),' ."\n";
+                print RSCRIPT 'cexCol=0.8,' ."\n";
                 
                 print RSCRIPT 'col = Colors)' . "\n";                       # Use defined palette
                 print RSCRIPT 'dev.off()';
