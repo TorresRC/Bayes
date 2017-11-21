@@ -1,4 +1,9 @@
 #!/usr/bin/perl -w
+
+#################################################################################
+#By:       Roberto C. Torres & Mauricio Flores                                  #
+#e-mail:   torres.roberto.c@gmail.com                                           #
+#################################################################################
 use strict;
 use List::MoreUtils qw(uniq);
 use FindBin;
@@ -6,7 +11,9 @@ use lib "$FindBin::Bin/lib";
 use Routines;
 my $MainPath = "$FindBin::Bin";
 
-my ($Usage, $TrainingFile, $MetadataFile, $OutPath, $Chi2, $IG, $OddsR, $PsCounts, $MI);
+my ($Usage, $TrainingFile, $MetadataFile, $OutPath, $Chi2, $IG, $OddsR, $PsCounts,
+    $MI, $AllClassesPlot, $ForClassPlot, $HeatMapPlot, $Correlation, $Sort,
+    $Clusters, $Dendrogram);
 
 $Usage = "\nUSAGE\n  $FindBin::Script <Observed Data [Absolute Path]>
                             <Metadata [Absolute Path]>
@@ -19,21 +26,27 @@ unless(@ARGV) {
         exit;
 }
 chomp @ARGV;
-$TrainingFile = $ARGV[0];
-$MetadataFile = $ARGV[1];
-$OutPath      = $ARGV[2];
-$PsCounts     = $ARGV[3];
-$IG           = $ARGV[4];
-$Chi2         = $ARGV[5];
-$OddsR        = $ARGV[6];
-$MI           = $ARGV[7];
-
+$TrainingFile   = $ARGV[0];
+$MetadataFile   = $ARGV[1];
+$OutPath        = $ARGV[2];
+$PsCounts       = $ARGV[3];
+$IG             = $ARGV[4];
+$Chi2           = $ARGV[5];
+$OddsR          = $ARGV[6];
+$MI             = $ARGV[7];
+$AllClassesPlot = $ARGV[8];
+$ForClassPlot   = $ARGV[9];
+$HeatMapPlot    = $ARGV[10];
+$Correlation    = $ARGV[11];
+$Sort           = $ARGV[12];
+$Clusters       = $ARGV[13];
+$Dendrogram     = $ARGV[14];
 
 my($Test, $TestReport, $Plot, $HeatMap, $PlotRScript, $LinesOnTrainingFile,
    $nFeature, $Line, $ColumnsOnTrainingFile, $N, $LinesOnMetaDataFile,
    $ColumnsOnMetaDataFile, $PossibleClass, $Column, $Class, $nClasses, $Element,
    $GlobalHits, $Hit, $Feature, $iClass, $a, $b, $c, $d, $nConfusion,
-   $ChiConfidence, $Round, $HeatMapRScript);
+   $ChiConfidence, $Round, $HeatMapRScript, $Matrix);
 my($i, $j);
 my(@TrainingFile, @TrainingFileFields, @TrainingMatrix, @MetaDataFile,
    @MetaDataFileFields, @MetaDataMatrix, @Classes, @Elements, @ChiConfidence,
@@ -211,106 +224,134 @@ print "\n Building Plots...";
 chdir($OutPath);
 
 # Dot plot all clases
-open(RSCRIPT, ">$PlotRScript");
-   print RSCRIPT 'library(ggplot2)' . "\n";
-   print RSCRIPT "df <- read.csv(\"$TestReport\")" . "\n";
-   print RSCRIPT 'ggplot(df, aes(Feature))';
-   foreach $Class(@Classes){
-      print RSCRIPT "+ geom_point(aes(y=$Class,color=\"$Class\"))";
-   }
-   if($Chi2 == 1){
-        @ChiConfidences = (0.9,0.95,0.975,0.99,0.999);
-        foreach $ChiConfidence(@ChiConfidences){
-                print RSCRIPT "+ geom_hline(aes(yintercept = qchisq($ChiConfidence, df=$nClasses-1), linetype=\"$ChiConfidence\"))";
-        }
-   }
-   print RSCRIPT "+ labs(x=\"Features\", y=\"bits\", title= \"$Test\", color=\"Class\", linetype=\"Confidence Intervals\")";
-   if($N > 100){
-      print RSCRIPT '+ theme(axis.text.x = element_text(angle = 90, size=4, hjust = 1))' . "\n";
-   }
-   print RSCRIPT "\n";
-   print RSCRIPT "ggsave(\"$Plot\")" . "\n";
-   
-close RSCRIPT;
-system ("R CMD BATCH $PlotRScript");
+if ($AllClassesPlot eq "on"){
+        open(RSCRIPT, ">$PlotRScript");
+                print RSCRIPT 'library(ggplot2)' . "\n";
+                print RSCRIPT "df <- read.csv(\"$TestReport\")" . "\n";
+                print RSCRIPT 'ggplot(df, aes(Feature))';
+                foreach $Class(@Classes){
+                        print RSCRIPT "+ geom_point(aes(y=$Class,color=\"$Class\"))";
+                }
+                if($Chi2 == 1){
+                        @ChiConfidences = (0.9,0.95,0.975,0.99,0.999);
+                        foreach $ChiConfidence(@ChiConfidences){
+                                print RSCRIPT "+ geom_hline(aes(yintercept = qchisq($ChiConfidence, df=$nClasses-1), linetype=\"$ChiConfidence\"))";
+                        }
+                }
+                print RSCRIPT "+ labs(x=\"Features\", y=\"bits\", title= \"$Test\", color=\"Class\", linetype=\"Confidence Intervals\")";
+                if($N > 100){
+                        print RSCRIPT '+ theme(axis.text.x = element_text(angle = 90, size=4, hjust = 1))' . "\n";
+                }
+                print RSCRIPT "\n";
+                print RSCRIPT "ggsave(\"$Plot\")" . "\n";
+                
+        close RSCRIPT;
+        system ("R CMD BATCH $PlotRScript");
+}
+
 
 # Dot plot for class
-foreach $Class(@Classes){
-        my $ClassPlotRScript = $OutPath ."/". $Class . "_DotPlotScript.R";
-        my $ClassPlot = $OutPath ."/". $Test ."_". $Class . "_DotPlot.pdf";
-        open(FILE, ">$ClassPlotRScript");
-           print FILE 'library(ggplot2)' . "\n";
-           print FILE "df <- read.csv(\"$TestReport\")" . "\n";
-           print FILE 'ggplot(df, aes(Feature))';
-           print FILE "+ geom_point(aes(y=$Class,color=\"$Class\"))";
-           if($Chi2 == 1){
-                @ChiConfidences = (0.9,0.95,0.975,0.99,0.999);
-                foreach $ChiConfidence(@ChiConfidences){
-                        print FILE "+ geom_hline(aes(yintercept = qchisq($ChiConfidence, df=$nClasses-1), linetype=\"$ChiConfidence\"))";
-                }
-           }
-           print FILE "+ labs(x=\"Features\", y=\"bits\", title= \"$Test\", color=\"Class\", linetype=\"Confidence Intervals\")";
-           if($N > 100){
-              print FILE '+ theme(axis.text.x = element_text(angle = 90, size=4, hjust = 1))' . "\n";
-           }
-           print FILE "\n";
-           print FILE "ggsave(\"$ClassPlot\")" . "\n";
-   
-        close FILE;
-        system ("R CMD BATCH $ClassPlotRScript");
+if ($ForClassPlot eq "on"){
+        foreach $Class(@Classes){
+                my $ClassPlotRScript = $OutPath ."/". $Class . "_DotPlotScript.R";
+                my $ClassPlot = $OutPath ."/". $Test ."_". $Class . "_DotPlot.pdf";
+                open(FILE, ">$ClassPlotRScript");
+                        print FILE 'library(ggplot2)' . "\n";
+                        print FILE "df <- read.csv(\"$TestReport\")" . "\n";
+                        print FILE 'ggplot(df, aes(Feature))';
+                        print FILE "+ geom_point(aes(y=$Class,color=\"$Class\"))";
+                        if($Chi2 == 1){
+                                @ChiConfidences = (0.9,0.95,0.975,0.99,0.999);
+                                foreach $ChiConfidence(@ChiConfidences){
+                                        print FILE "+ geom_hline(aes(yintercept = qchisq($ChiConfidence, df=$nClasses-1), linetype=\"$ChiConfidence\"))";
+                                }
+                        }
+                        print FILE "+ labs(x=\"Features\", y=\"bits\", title= \"$Test\", color=\"Class\", linetype=\"Confidence Intervals\")";
+                        if($N > 100){
+                                print FILE '+ theme(axis.text.x = element_text(angle = 90, size=4, hjust = 1))' . "\n";
+                        }
+                        print FILE "\n";
+                        print FILE "ggsave(\"$ClassPlot\")" . "\n";
+                        
+                close FILE;
+                system ("R CMD BATCH $ClassPlotRScript");
+        }
 }
 
    
 # Heat Map;
+if ($HeatMapPlot eq "on"){
+        open(RSCRIPT, ">$HeatMapRScript");
+                print RSCRIPT 'library(gplots)' . "\n";
+                print RSCRIPT 'library(RColorBrewer)' . "\n";
+                
+                print RSCRIPT "png(\"$HeatMap\"," . "\n";
+                print RSCRIPT "width = 5*300," . "\n";
+                print RSCRIPT "height = 5*300," . "\n";
+                print RSCRIPT "res = 300," . "\n";
+                print RSCRIPT "pointsize = 8)" . "\n";
+                
+                print RSCRIPT 'Colors <- colorRampPalette(c("red", "yellow", "green"))(n=299)' . "\n";
+                
+                $Matrix = "Matrix";
+                
+                print RSCRIPT "df <- read.csv(\"$TestReport\")" . "\n";
+                print RSCRIPT 'rnames <- df[,1]' . "\n";
+                
+                #print RSCRIPT 'mat_data <- data.matrix(df[,2:ncol(df)])' . "\n";
+                print RSCRIPT "$Matrix <- data.matrix(df[,2:ncol(df)])" . "\n";
+                print RSCRIPT "rownames($Matrix) <- rnames" . "\n";
+                
+                if ($Correlation eq "on"){
+                        print RSCRIPT "$Matrix <- cor($Matrix)" . "\n";
+                }
+                
+                print RSCRIPT "heatmap.2($Matrix," . "\n";
+                 
+                print RSCRIPT "main = \"$Test\"," . "\n";                  # Title
+                print RSCRIPT 'xlab = "Class",' . "\n";
+                print RSCRIPT 'ylab = "Feature",' . "\n";
+                print RSCRIPT 'keysize = 0.8,' . "\n";
+                print RSCRIPT 'key.title = "Confidence",' . "\n";
+                print RSCRIPT 'key.xlab = "Key",' . "\n";
+                print RSCRIPT 'density.info="none",' . "\n";                # Turns of density plot un legend
+                print RSCRIPT 'notecol = "black",' . "\n";                  # font of cell labels in black
+                print RSCRIPT 'trace = "none",' . "\n";                     # Turns of trace lines in heat map
+                
+                if ($nClasses < 11 && $nFeature < 101){
+                        $Round = 5;
+                        print RSCRIPT "cellnote = round($Matrix,$Round)," . "\n"; # Shows data in cell
+                }
+                       
+                if ($Sort eq "off"){
+                        print RSCRIPT 'Colv = "NA",' . "\n";                        # Turn off column sort
+                        print RSCRIPT 'Rowv = "NA",' . "\n";                        # Turn off row sort
+                }elsif ($Sort eq "on"){
+                        if ($Clusters eq "on"){
+                                #print RSCRIPT "distance = distfun($Matrix, method = \"manhattan\")," . "\n";
+                                #print RSCRIPT 'cluster = hclustfun(distance, method = "ward"),' . "\n";
+                                print RSCRIPT "Rowv = as.dendrogram(hclust(dist($Matrix, method = \"manhattan\"), method = \"ward\"))," . "\n";      # apply default clustering method'
+                                print RSCRIPT "Colv = as.dendrogram(hclust(dist($Matrix, method = \"manhattan\"), method = \"ward\"))," . "\n";      # apply default clustering method
+                        }
+                }
+                
+                if ($Dendrogram eq "off"){
+                        print RSCRIPT 'dendrogram = "none",' ."\n";                 # Hides dendrogram
+                }elsif($Dendrogram eq "row"){
+                        print RSCRIPT 'dendrogram = "row",' ."\n";
+                }elsif($Dendrogram eq "column"){
+                        print RSCRIPT 'dendrogram = "column",' ."\n";
+                }elsif($Dendrogram eq "both"){
+                        print RSCRIPT 'dendrogram = "both",' ."\n";
+                }
+                
+                print RSCRIPT 'col = Colors)' . "\n";                       # Use defined palette
+                print RSCRIPT 'dev.off()';
+        close RSCRIPT;
+        system ("R CMD BATCH $HeatMapRScript");
+        system ("rm $PlotRScript $HeatMapRScript $OutPath/*.Rout $OutPath/Rplots.pdf");
+}
 
-open(RSCRIPT, ">$HeatMapRScript");
-   print RSCRIPT 'library(gplots)' . "\n";
-   print RSCRIPT 'library(RColorBrewer)' . "\n";
-   print RSCRIPT "df <- read.csv(\"$TestReport\")" . "\n";
-   print RSCRIPT 'rnames <- df[,1]' . "\n";
-   print RSCRIPT 'mat_data <- data.matrix(df[,2:ncol(df)])' . "\n";
-   print RSCRIPT 'cor_mat_data <- cor(mat_data)' . "\n";
-   print RSCRIPT 'rownames(mat_data) <- rnames' . "\n";
-   
-   #print RSCRIPT 'distance = dist(cor_mat_data, method = "manhattan")' . "\n";
-   #print RSCRIPT 'cluster = hclust(distance, method = "ward")' . "\n";
-   
-   print RSCRIPT 'Colors <- colorRampPalette(c("red", "yellow", "green"))(n=299)' . "\n";
-   if ($nClasses < 5){
-        $Round = 5;
-   }
-   
-   print RSCRIPT "png(\"$HeatMap\"," . "\n";
-   print RSCRIPT "width = 5*300," . "\n";
-   print RSCRIPT "height = 5*300," . "\n";
-   print RSCRIPT "res = 300," . "\n";
-   print RSCRIPT "pointsize = 8)" . "\n";
-   
-   print RSCRIPT 'heatmap.2(cor_mat_data,' . "\n";                    
-   #print RSCRIPT "cellnote = round(mat_data,$Round)," . "\n"; # Shows data in cell 
-   print RSCRIPT "main = \"$Test\"," . "\n";                  # Title
-   print RSCRIPT 'xlab = "Class",' . "\n";
-   print RSCRIPT 'ylab = "Feature",' . "\n";
-   print RSCRIPT 'keysize = 0.8,' . "\n";
-   print RSCRIPT 'key.title = "Confidence",' . "\n";
-   print RSCRIPT 'key.xlab = "Key",' . "\n";
-   print RSCRIPT 'density.info="none",' . "\n";                # Turns of density plot un legend
-   print RSCRIPT 'notecol = "black",' . "\n";                  # font of cell labels in black
-   print RSCRIPT 'trace = "none",' . "\n";                     # Turns of trace lines in heat map
-
-   print RSCRIPT 'dendrogram = "row",' ."\n";                 # Hides dendrogram
-   #print RSCRIPT 'Colv = "NA",' . "\n";                        # Turn off column sort
-   #print RSCRIPT 'Rowv = "NA",' . "\n";                        # Turn off row sort
-   #print RSCRIPT 'Rowv = as.dendrogram(cluster),' . "\n";      # apply default clustering method'
-   #print RSCRIPT 'Colv = as.dendrogram(cluster),' . "\n";      # apply default clustering method
-   print RSCRIPT 'col = Colors)' . "\n";                       # Use defined palette
-
-   print RSCRIPT 'dev.off()';
-close RSCRIPT;
-
-system ("R CMD BATCH $HeatMapRScript");
-
-#system ("rm $PlotRScript $HeatMapRScript $OutPath/*.Rout $OutPath/Rplots.pdf");
 print "Done!\n\n";
 
 exit;
