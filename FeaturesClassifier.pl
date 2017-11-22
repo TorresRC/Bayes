@@ -11,9 +11,9 @@ use lib "$FindBin::Bin/lib";
 use Routines;
 my $MainPath = "$FindBin::Bin";
 
-my ($Usage, $TrainingFile, $MetadataFile, $OutPath, $Method, $Chi2, $IG, $OddsR, $PsCounts,
-    $MI, $AllClassesPlot, $ForClassPlot, $HeatMapPlot, $Correlation, $Sort,
-    $Clusters, $Dendrogram);
+my ($Usage, $TrainingFile, $MetadataFile, $OutPath, $Method, $Chi2, $IG, $OddsR,
+    $PsCounts, $MI, $AllClassesPlot, $ForClassPlot, $HeatMapPlot, $Correlation,
+    $Sort, $Clusters, $Dendrogram);
 
 $Usage = "\nUSAGE\n  $FindBin::Script <Observed Data [Absolute Path]>
                             <Metadata [Absolute Path]>
