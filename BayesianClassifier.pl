@@ -181,7 +181,7 @@ for ($i=1;$i<$ColumnsOnQryFile;$i++){
 }
 
 open (PFILE, ">$Probabilities");
-open (CFILE, ">$Classification");
+open (CFILE, ">>$Classification");
         print CFILE "Feature,Class\n";
 for($i=1; $i<$ColumnsOnQryFile; $i++){
    $QryElement = $QryMatrix[0][$i];
