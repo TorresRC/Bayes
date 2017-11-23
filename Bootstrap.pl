@@ -2,12 +2,13 @@
 use strict;
 use List::MoreUtils qw(uniq);
 use List::Util qw(reduce);
+#use Math::Random::Secure qw(rand);
 use FindBin;
 use lib "$FindBin::Bin/lib";
 use Routines;
 my $MainPath = "$FindBin::Bin";
 
-my ($Usage, $TrainingFile, $MetadataFile, $QryFile, $OutPath, $Stat, $PsCounts, $HighestClassLen,
+my ($Usage, $TrainingFile, $MetadataFile, $QryFile, $OutPath, $Stat, $PsCounts,
     $max_val_key, $Iter);
 
 $Usage = "\nUSAGE\n  $FindBin::Script <Observed Data [Absolute Path]>
@@ -35,7 +36,8 @@ my($LinesOnTrainingFile, $Line, $ColumnsOnTrainingFile, $N, $MetaData,
    $Region, $Element, $Class, $nClasses, $Classification,
    $Counter, $Hit, $Count, $Feature, $ElementHit, $ElementHits, $FeatureHit, $FeatureHits,
    $nFeature, $LinesOnQryFile, $ColumnsOnQryFile, $QryHit, $QryElement, $PossibleClass,
-   $Probabilities, $Column, $pQryClass, $cpQryClass, $ReportFile, $pHitFeatureClass);
+   $Probabilities, $Column, $pQryClass, $cpQryClass, $ReportFile, $pHitFeatureClass,
+   $HigherClassLen);
 my($i, $j);
 my(@TrainingFile, @TrainingFileFields, @TrainingMatrix, @MetaDataField, @MetaDataFile,
    @MetaDataFileFields, @MetaDataMatrix, @Classes, @Elements, @QryFile, @QryFileFields,
@@ -47,6 +49,7 @@ my(%ClassOfElement, %TotalFeatureHits, %HitsOfFeaturesInClass, %pHitsOfFeaturesI
 my $TrainingMatrix = [ ];
 my $QryMatrix = [ ];
 my $Report = [ ];
+my @Bin = (0,1);
 
 $ReportFile = $MainPath ."/". "Prediction.csv";
 $Classification = $OutPath ."/". "AsignedClass.txt";
@@ -111,53 +114,43 @@ for ($i=0;$i<$nClasses;$i++){
 		$ClassOfElement{$Element} = $Class;
 		if($Class eq $Classes[$i]){
                         $Elements{$Classes[$i]}++; #   <-------- Number of elements in each class
-      }
-   }
+                }
+        }
 }
 
 $max_val_key = reduce { $Elements{$a} > $Elements{$b} ? $a : $b } keys %Elements;
-$HighestClassLen = $Elements{$max_val_key};
-
-#print "\n$ColumnsOnTrainingFile\n";
-#exit;
+$HigherClassLen = $Elements{$max_val_key}*2;
 
 foreach $Class(@Classes){
 	for ($i=1;$i<$LinesOnTrainingFile;$i++){
 		$Feature = $TrainingMatrix[$i][0];
-		for ($j=1;$j<$ColumnsOnTrainingFile; $j++){         
-			$Element = $TrainingMatrix[0][$j];
+		for ($j=1;$j<$LinesOnMetaDataFile; $j++){
+			$Element = $MetaDataMatrix[$j][0];
 			if ($ClassOfElement{$Element} eq $Class){
-				$HitsOfFeaturesInClass{$Feature}{$Class} += $TrainingMatrix[$i][$j]+$PsCounts; # <- Total Feature Hits in Class
-            
+				$HitsOfFeaturesInClass{$Feature}{$Class} += $TrainingMatrix[$i][$j]+$PsCounts; # <- Total Feature Hits in Class    
 			}
 		}
 	}
 }
 
-#foreach $Class(@Classes){
-#   for ($i=1;$i<$LinesOnTrainingFile; $i++){
-#      $Feature = $TrainingMatrix[$i][0];
-#      
-#            print "\n$Class\t$Feature\t$HitsOfFeaturesInClass{$Feature}{\"E\"}\n";
-#   }
-#}
-#exit;
-
-
-
 foreach $Class(@Classes){
-   if ($Elements{$Class} < $HighestClassLen){
-      for ($i=1;$i<$LinesOnTrainingFile;$i++){
-         $Feature = $TrainingMatrix[$i][0];
-         $pHitFeatureClass = $HitsOfFeaturesInClass{$Feature}{$Class}/$Elements{$Class};
-      
-         $pHitFeatureClass = $HitsOfFeaturesInClass{"a"}{"D"}/$Elements{"D"};
-      
-         print "\n$pHitFeatureClass\n";
-         exit;
-      }
-   }
-     
-      
-      
+        if ($Elements{$Class} < $HigherClassLen){
+                for ($i=1;$i<$LinesOnTrainingFile;$i++){
+                        $Feature = $TrainingMatrix[$i][0];
+                        $pHitFeatureClass = $HitsOfFeaturesInClass{$Feature}{$Class}/$Elements{$Class};
+         #print "\n$HitsOfFeaturesInClass{$Feature}{$Class} / $Elements{$Class} = $pHitFeatureClass\n";
+         #exit;
+                }
+        }
 }
+
+my $Test;
+
+if (rand()< 0.1){
+        $Test = 0;    
+}else{
+        $Test = 1;
+}
+print "\n$Test\n";
+exit;
+
