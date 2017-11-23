@@ -37,22 +37,25 @@ my($LinesOnTrainingFile, $Line, $ColumnsOnTrainingFile, $N, $MetaData,
    $Counter, $Hit, $Count, $Feature, $ElementHit, $ElementHits, $FeatureHit, $FeatureHits,
    $nFeature, $LinesOnQryFile, $ColumnsOnQryFile, $QryHit, $QryElement, $PossibleClass,
    $Probabilities, $Column, $pQryClass, $cpQryClass, $ReportFile, $pHitFeatureClass,
-   $HigherClassLen);
-my($i, $j);
+   $HigherClassLen, $EstimatedFeature, $NewElement, $BootstrapFile, $cmd, $BootstrapedMetadata,
+   $Qry,$LinesOnClassification, $ColumnsOnClassification, $Replaces);
+my($i, $j, $k, $l);
 my(@TrainingFile, @TrainingFileFields, @TrainingMatrix, @MetaDataField, @MetaDataFile,
    @MetaDataFileFields, @MetaDataMatrix, @Classes, @Elements, @QryFile, @QryFileFields,
-   @QryMatrix);
+   @QryMatrix, @Bootstrap, @BootstrapedQry, @BootstrapedQryFields, @BootstrapedQryMatrix);
 my(%ClassOfElement, %TotalFeatureHits, %HitsOfFeaturesInClass, %pHitsOfFeaturesInClass,
    %cpHitsOfFeaturesInClass,
    %ElementClass, %Elements, %pClass, %cpClass, %ClassHits, %FeatureClass,
-   %pFeatureClass, %cpFeatureClass, %FeatureTotalHits, %cpQry, %pQry);
+   %pFeatureClass, %cpFeatureClass, %FeatureTotalHits, %cpQry, %pQry, %BootstrapFile);
 my $TrainingMatrix = [ ];
 my $QryMatrix = [ ];
 my $Report = [ ];
-my @Bin = (0,1);
+my $Bootstrap = [ ];
+my $BootstrapedQryMatrix = [ ];
 
 $ReportFile = $MainPath ."/". "Prediction.csv";
 $Classification = $OutPath ."/". "AsignedClass.txt";
+$BootstrapedMetadata = $OutPath ."/". "Bootstraped_Metadata.csv";
 
 if($Stat == 1){
         $Probabilities = $MainPath ."/". "Probabilities.csv";
@@ -119,7 +122,8 @@ for ($i=0;$i<$nClasses;$i++){
 }
 
 $max_val_key = reduce { $Elements{$a} > $Elements{$b} ? $a : $b } keys %Elements;
-$HigherClassLen = $Elements{$max_val_key}*2;
+$HigherClassLen = $Elements{$max_val_key};
+$Iter = $Elements{$max_val_key}*2;
 
 foreach $Class(@Classes){
 	for ($i=1;$i<$LinesOnTrainingFile;$i++){
@@ -133,24 +137,88 @@ foreach $Class(@Classes){
 	}
 }
 
+$Bootstrap -> [0][0] = "";
+for ($i=1;$i<$LinesOnTrainingFile;$i++){
+        $Feature = $TrainingMatrix[$i][0];
+        $Bootstrap -> [$i][0] = $Feature;
+}
+
 foreach $Class(@Classes){
         if ($Elements{$Class} < $HigherClassLen){
-                for ($i=1;$i<$LinesOnTrainingFile;$i++){
-                        $Feature = $TrainingMatrix[$i][0];
-                        $pHitFeatureClass = $HitsOfFeaturesInClass{$Feature}{$Class}/$Elements{$Class};
-         #print "\n$HitsOfFeaturesInClass{$Feature}{$Class} / $Elements{$Class} = $pHitFeatureClass\n";
-         #exit;
+                for ($i=1; $i<$Iter+1;$i++){
+                        for ($j=1;$j<$LinesOnTrainingFile;$j++){
+                                $Feature = $TrainingMatrix[$j][0];
+                                $NewElement = $Class . ($i);
+                                $Bootstrap -> [0][$i] = $NewElement;
+                                
+                                $pHitFeatureClass = $HitsOfFeaturesInClass{$Feature}{$Class}/$Elements{$Class};
+                                if (rand()<= $pHitFeatureClass){
+                                        $EstimatedFeature = 1;    
+                                }else{
+                                        $EstimatedFeature = 0;
+                                }
+                                $Bootstrap -> [$j][$i] = $EstimatedFeature;
+                        }
                 }
+                $BootstrapFile{$Class} = $OutPath ."/". $Class ."_Bootstrap.csv";
+                #push @Bootstrap, $BootstrapFile{$Class};
+                open (FILE, ">>$BootstrapFile{$Class}");
+                for ($k=0;$k<$LinesOnTrainingFile;$k++){
+                        for($l=0;$l<$Iter+1;$l++){
+                                print FILE $Bootstrap -> [$k][$l], ",";
+                        }
+                        print FILE "\n";
+                }
+                close FILE;
         }
 }
 
-my $Test;
+#foreach my $Qry(@Bootstrap){
 
-if (rand()< 0.1){
-        $Test = 0;    
-}else{
-        $Test = 1;
+foreach $Class (@Classes){
+        if ($Elements{$Class} < $HigherClassLen){
+                $Qry = $BootstrapFile{$Class};
+                $cmd = `perl BayesianClassifier.pl $TrainingFile $MetadataFile $Qry $OutPath 1 0`;
+        }
 }
-print "\n$Test\n";
+
+open (FILE, ">$BootstrapedMetadata");
+        for ($i=0; $i<$LinesOnMetaDataFile; $i++){
+                $Line = $MetaDataFile[$i];
+                print FILE $Line, "\n";
+        }
+close FILE;
+
+
+@BootstrapedQry = ReadFile($Classification);
+$LinesOnClassification = scalar@BootstrapedQry;
+for ($i=0; $i<$LinesOnClassification; $i++){
+	$Line = $BootstrapedQry[$i];
+	@BootstrapedQryFields = split(",",$Line);
+	push (@BootstrapedQryMatrix, [@BootstrapedQryFields]);
+}
+$ColumnsOnClassification = scalar@BootstrapedQryFields;
+
+
+foreach $Class(@Classes){
+        if ($Elements{$Class} < $HigherClassLen){
+                $Replaces = $HigherClassLen - $Elements{$Class};
+                for ($i=0;$i<$Replaces;$i++){
+                        for ($j=0;$j<$LinesOnClassification;$j++){
+                                for ($k=0;$k<$ColumnsOnClassification;$k++){
+                                        if ($BootstrapedQryMatrix[$k][$j] eq $Class){
+                                                print "\n$BootstrapFile{$Class}\n";
+                                                exit;
+                                        
+                                        }
+                                }
+                        }
+                }
+        }
+}
+                
+        
+
+
 exit;
 
