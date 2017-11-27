@@ -38,7 +38,7 @@ my($LinesOnTrainingFile, $Line, $ColumnsOnTrainingFile, $N, $MetaData,
    $nFeature, $LinesOnQryFile, $ColumnsOnQryFile, $QryHit, $QryElement, $PossibleClass,
    $Probabilities, $Column, $pQryClass, $cpQryClass, $ReportFile, $pHitFeatureClass,
    $HigherClassLen, $EstimatedFeature, $NewElement, $BootstrapFile, $cmd, $BootstrapedMetadata,
-   $Qry,$LinesOnClassification, $ColumnsOnClassification, $Replaces);
+   $Qry,$LinesOnClassification, $ColumnsOnClassification, $Replacements);
 my($i, $j, $k, $l);
 my(@TrainingFile, @TrainingFileFields, @TrainingMatrix, @MetaDataField, @MetaDataFile,
    @MetaDataFileFields, @MetaDataMatrix, @Classes, @Elements, @QryFile, @QryFileFields,
@@ -46,7 +46,8 @@ my(@TrainingFile, @TrainingFileFields, @TrainingMatrix, @MetaDataField, @MetaDat
 my(%ClassOfElement, %TotalFeatureHits, %HitsOfFeaturesInClass, %pHitsOfFeaturesInClass,
    %cpHitsOfFeaturesInClass,
    %ElementClass, %Elements, %pClass, %cpClass, %ClassHits, %FeatureClass,
-   %pFeatureClass, %cpFeatureClass, %FeatureTotalHits, %cpQry, %pQry, %BootstrapFile);
+   %pFeatureClass, %cpFeatureClass, %FeatureTotalHits, %cpQry, %pQry, %BootstrapFile,
+   %Bootstrapped);
 my $TrainingMatrix = [ ];
 my $QryMatrix = [ ];
 my $Report = [ ];
@@ -173,8 +174,6 @@ foreach $Class(@Classes){
         }
 }
 
-#foreach my $Qry(@Bootstrap){
-
 foreach $Class (@Classes){
         if ($Elements{$Class} < $HigherClassLen){
                 $Qry = $BootstrapFile{$Class};
@@ -182,28 +181,32 @@ foreach $Class (@Classes){
         }
 }
 
-open (FILE, ">$BootstrapedMetadata");
-        for ($i=0; $i<$LinesOnMetaDataFile; $i++){
-                $Line = $MetaDataFile[$i];
-                print FILE $Line, "\n";
+for ($i=0; $i<$LinesOnMetaDataFile; $i++){
+        for ($j=0; $j<$ColumnsOnMetaDataFile; $j++){
+                $BootstrapedQryMatrix -> [$i][$j] = $MetaDataMatrix[$i]->[$j];
+                #print "\n" . $BootstrapedQryMatrix -> [$i][$j] . "\n";
         }
-close FILE;
-
+}
 
 @BootstrapedQry = ReadFile($Classification);
 $LinesOnClassification = scalar@BootstrapedQry;
 for ($i=0; $i<$LinesOnClassification; $i++){
 	$Line = $BootstrapedQry[$i];
 	@BootstrapedQryFields = split(",",$Line);
-	push (@BootstrapedQryMatrix, [@BootstrapedQryFields]);
+        $Bootstrapped{$BootstrapedQryFields[0]} = $BootstrapedQryFields[1];
 }
 $ColumnsOnClassification = scalar@BootstrapedQryFields;
 
-
 foreach $Class(@Classes){
         if ($Elements{$Class} < $HigherClassLen){
-                $Replaces = $HigherClassLen - $Elements{$Class};
-                for ($i=0;$i<$Replaces;$i++){
+                $Replacements = $HigherClassLen - $Elements{$Class};
+                for ($i=0;$i<$Replacements;$i++){
+                        
+                        
+                        
+                        
+                        
+                        
                         for ($j=0;$j<$LinesOnClassification;$j++){
                                 for ($k=0;$k<$ColumnsOnClassification;$k++){
                                         if ($BootstrapedQryMatrix[$k][$j] eq $Class){
