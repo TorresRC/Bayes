@@ -123,7 +123,7 @@ for ($i=0;$i<$nClasses;$i++){
 
 $max_val_key = reduce { $Elements{$a} > $Elements{$b} ? $a : $b } keys %Elements;
 $HigherClassLen = $Elements{$max_val_key};
-$Iter = $Elements{$max_val_key}*2;
+$Iter = $HigherClassLen*2;
 
 foreach $Class(@Classes){
 	for ($i=1;$i<$LinesOnTrainingFile;$i++){
@@ -161,8 +161,8 @@ foreach $Class(@Classes){
                         }
                 }
                 $BootstrapFile{$Class} = $OutPath ."/". $Class ."_Bootstrap.csv";
-                #push @Bootstrap, $BootstrapFile{$Class};
-                open (FILE, ">>$BootstrapFile{$Class}");
+                $Qry = $BootstrapFile{$Class};
+                open (FILE, ">>$Qry");
                 for ($k=0;$k<$LinesOnTrainingFile;$k++){
                         for($l=0;$l<$Iter+1;$l++){
                                 print FILE $Bootstrap -> [$k][$l], ",";
@@ -170,18 +170,11 @@ foreach $Class(@Classes){
                         print FILE "\n";
                 }
                 close FILE;
-        }
-}
-
-#foreach my $Qry(@Bootstrap){
-
-foreach $Class (@Classes){
-        if ($Elements{$Class} < $HigherClassLen){
-                $Qry = $BootstrapFile{$Class};
                 $cmd = `perl BayesianClassifier.pl $TrainingFile $MetadataFile $Qry $OutPath 1 0`;
         }
 }
 
+# Building a bootstrapped Metadata file 
 open (FILE, ">$BootstrapedMetadata");
         for ($i=0; $i<$LinesOnMetaDataFile; $i++){
                 $Line = $MetaDataFile[$i];
@@ -189,7 +182,7 @@ open (FILE, ">$BootstrapedMetadata");
         }
 close FILE;
 
-
+# Put the bootstrapped metadata into an array of arrays
 @BootstrapedQry = ReadFile($Classification);
 $LinesOnClassification = scalar@BootstrapedQry;
 for ($i=0; $i<$LinesOnClassification; $i++){
@@ -199,26 +192,20 @@ for ($i=0; $i<$LinesOnClassification; $i++){
 }
 $ColumnsOnClassification = scalar@BootstrapedQryFields;
 
-
-foreach $Class(@Classes){
+foreach $Class (@Classes){
         if ($Elements{$Class} < $HigherClassLen){
+                print "\n$Class = $Elements{$Class}";
                 $Replaces = $HigherClassLen - $Elements{$Class};
-                for ($i=0;$i<$Replaces;$i++){
-                        for ($j=0;$j<$LinesOnClassification;$j++){
-                                for ($k=0;$k<$ColumnsOnClassification;$k++){
-                                        if ($BootstrapedQryMatrix[$k][$j] eq $Class){
-                                                print "\n$BootstrapFile{$Class}\n";
-                                                exit;
-                                        
-                                        }
-                                }
+                #for ($j=0;$j<$LinesOnClassification;$j++){
+                $i = 0;
+                        if ($BootstrapedQryMatrix[$i][1] eq $Class && $i <= $Replaces){
+                                        print "\n$BootstrapedQryMatrix[$j][0]\t$BootstrapedQryMatrix[$j][1]\t$BootstrapFile{$Class}\n";
+                                #}
+                                $i++;
                         }
-                }
+                #}
         }
 }
-                
-        
-
 
 exit;
 
