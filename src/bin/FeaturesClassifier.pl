@@ -7,7 +7,7 @@
 use strict;
 use List::MoreUtils qw(uniq);
 use FindBin;
-use lib "$FindBin::Bin/lib";
+use lib "$FindBin::Bin/../lib";
 use Routines;
 my $MainPath = "$FindBin::Bin";
 

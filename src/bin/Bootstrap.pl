@@ -4,7 +4,7 @@ use List::MoreUtils qw(uniq);
 use List::Util qw(reduce);
 #use Math::Random::Secure qw(rand);
 use FindBin;
-use lib "$FindBin::Bin/lib";
+use lib "$FindBin::Bin/../lib";
 use Routines;
 my $MainPath = "$FindBin::Bin";
 
@@ -32,13 +32,14 @@ $Iter         = $ARGV[6];
 
 
 my($LinesOnTrainingFile, $Line, $ColumnsOnTrainingFile, $N, $MetaData,
-   $LinesOnMetaDataFile, $ColumnsOnMetaDataFile, $GlobalHits,
-   $Region, $Element, $Class, $nClasses, $Classification,
-   $Counter, $Hit, $Count, $Feature, $ElementHit, $ElementHits, $FeatureHit, $FeatureHits,
-   $nFeature, $LinesOnQryFile, $ColumnsOnQryFile, $QryHit, $QryElement, $PossibleClass,
-   $Probabilities, $Column, $pQryClass, $cpQryClass, $ReportFile, $pHitFeatureClass,
-   $HigherClassLen, $EstimatedFeature, $NewElement, $BootstrapFile, $cmd, $BootstrapedMetadata,
-   $Qry,$LinesOnClassification, $ColumnsOnClassification, $Replacements);
+   $LinesOnMetaDataFile, $ColumnsOnMetaDataFile, $GlobalHits, $Region, $Element,
+   $Class, $nClasses, $Classification, $Counter, $Hit, $Count, $Feature,
+   $ElementHit, $ElementHits, $FeatureHit, $FeatureHits, $nFeature,
+   $LinesOnQryFile, $ColumnsOnQryFile, $QryHit, $QryElement, $PossibleClass,
+   $Probabilities, $Column, $pQryClass, $cpQryClass, $ReportFile,
+   $pHitFeatureClass, $HigherClassLen, $EstimatedFeature, $NewElement,
+   $BootstrapFile, $cmd, $BootstrapedMetadata, $Qry,$LinesOnClassification,
+   $ColumnsOnClassification, $Replaces);
 my($i, $j, $k, $l);
 my(@TrainingFile, @TrainingFileFields, @TrainingMatrix, @MetaDataField, @MetaDataFile,
    @MetaDataFileFields, @MetaDataMatrix, @Classes, @Elements, @QryFile, @QryFileFields,
@@ -46,8 +47,7 @@ my(@TrainingFile, @TrainingFileFields, @TrainingMatrix, @MetaDataField, @MetaDat
 my(%ClassOfElement, %TotalFeatureHits, %HitsOfFeaturesInClass, %pHitsOfFeaturesInClass,
    %cpHitsOfFeaturesInClass,
    %ElementClass, %Elements, %pClass, %cpClass, %ClassHits, %FeatureClass,
-   %pFeatureClass, %cpFeatureClass, %FeatureTotalHits, %cpQry, %pQry, %BootstrapFile,
-   %Bootstrapped);
+   %pFeatureClass, %cpFeatureClass, %FeatureTotalHits, %cpQry, %pQry, %BootstrapFile);
 my $TrainingMatrix = [ ];
 my $QryMatrix = [ ];
 my $Report = [ ];
@@ -124,7 +124,7 @@ for ($i=0;$i<$nClasses;$i++){
 
 $max_val_key = reduce { $Elements{$a} > $Elements{$b} ? $a : $b } keys %Elements;
 $HigherClassLen = $Elements{$max_val_key};
-$Iter = $Elements{$max_val_key}*2;
+$Iter = $HigherClassLen*2;
 
 foreach $Class(@Classes){
 	for ($i=1;$i<$LinesOnTrainingFile;$i++){
@@ -162,8 +162,8 @@ foreach $Class(@Classes){
                         }
                 }
                 $BootstrapFile{$Class} = $OutPath ."/". $Class ."_Bootstrap.csv";
-                #push @Bootstrap, $BootstrapFile{$Class};
-                open (FILE, ">>$BootstrapFile{$Class}");
+                $Qry = $BootstrapFile{$Class};
+                open (FILE, ">>$Qry");
                 for ($k=0;$k<$LinesOnTrainingFile;$k++){
                         for($l=0;$l<$Iter+1;$l++){
                                 print FILE $Bootstrap -> [$k][$l], ",";
@@ -171,57 +171,47 @@ foreach $Class(@Classes){
                         print FILE "\n";
                 }
                 close FILE;
-        }
-}
-
-foreach $Class (@Classes){
-        if ($Elements{$Class} < $HigherClassLen){
-                $Qry = $BootstrapFile{$Class};
                 $cmd = `perl BayesianClassifier.pl $TrainingFile $MetadataFile $Qry $OutPath 1 0`;
         }
 }
 
-for ($i=0; $i<$LinesOnMetaDataFile; $i++){
-        for ($j=0; $j<$ColumnsOnMetaDataFile; $j++){
-                $BootstrapedQryMatrix -> [$i][$j] = $MetaDataMatrix[$i]->[$j];
-                #print "\n" . $BootstrapedQryMatrix -> [$i][$j] . "\n";
+# Building a bootstrapped Metadata file 
+open (FILE, ">$BootstrapedMetadata");
+        for ($i=0; $i<$LinesOnMetaDataFile; $i++){
+                $Line = $MetaDataFile[$i];
+                print FILE $Line, "\n";
         }
-}
+close FILE;
 
+# Put the bootstrapped metadata into an array of arrays
 @BootstrapedQry = ReadFile($Classification);
 $LinesOnClassification = scalar@BootstrapedQry;
 for ($i=0; $i<$LinesOnClassification; $i++){
 	$Line = $BootstrapedQry[$i];
 	@BootstrapedQryFields = split(",",$Line);
-        $Bootstrapped{$BootstrapedQryFields[0]} = $BootstrapedQryFields[1];
+	push (@BootstrapedQryMatrix, [@BootstrapedQryFields]);
 }
 $ColumnsOnClassification = scalar@BootstrapedQryFields;
 
-foreach $Class(@Classes){
+foreach $Class (@Classes){
         if ($Elements{$Class} < $HigherClassLen){
-                $Replacements = $HigherClassLen - $Elements{$Class};
-                for ($i=0;$i<$Replacements;$i++){
-                        
-                        
-                        
-                        
-                        
-                        
-                        for ($j=0;$j<$LinesOnClassification;$j++){
-                                for ($k=0;$k<$ColumnsOnClassification;$k++){
-                                        if ($BootstrapedQryMatrix[$k][$j] eq $Class){
-                                                print "\n$BootstrapFile{$Class}\n";
-                                                exit;
-                                        
+                $Replaces = $HigherClassLen - $Elements{$Class};
+                $i = 0;
+                for ($j=0; $j<$LinesOnClassification; $j++){
+                        if ($BootstrapedQryMatrix[$j][1] eq $Class && $i < $Replaces){
+                                open (FILE, ">>$BootstrapedMetadata");
+                                print FILE "\n$BootstrapedQryMatrix[$j][0],$BootstrapedQryMatrix[$j][1]";
+                                close FILE;
+                                for ($k=$ColumnsOnTrainingFile+1; $k<$ColumnsOnTrainingFile+$Replaces;$k++){
+                                        for ($l=0; $l< $LinesOnTrainingFile; $l++){
+                                                
                                         }
                                 }
+                                $i++;
                         }
                 }
         }
 }
-                
-        
-
 
 exit;
 
