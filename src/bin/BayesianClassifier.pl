@@ -8,12 +8,12 @@ my $MainPath = "$FindBin::Bin";
 
 my ($Usage, $TrainingFile, $MetadataFile, $QryFile, $OutPath, $Stat, $PsCounts);
 
-$Usage = "\nUSAGE\n  $FindBin::Script <Observed Data [Absolute Path]>
-                            <Metadata [Absolute Path]>
-                            <Output Path [Relative Path]>
-                            <Pseudo Counts Increase [Integer]>
-                            <ChiSquare Test [Bolean]>
-                            <Maximum Likelihood Estimation [Bolean]>\n\n";
+$Usage = "\nUSAGE\n  $FindBin::Script <Observed Data [File]>
+                        <Metadata [File]>
+                        <Query [File]>
+                        <Output Path [Path]>
+                        <Statistics [Bolean]>
+                        <Pseudo Counts [Bolean]>\n\n";
 unless(@ARGV) {
         print $Usage;
         exit;
