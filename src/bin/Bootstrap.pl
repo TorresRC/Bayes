@@ -4,7 +4,7 @@ use List::MoreUtils qw(uniq);
 use List::Util qw(reduce);
 #use Math::Random::Secure qw(rand);
 use FindBin;
-use lib "$FindBin::Bin/lib";
+use lib "$FindBin::Bin/../lib";
 use Routines;
 my $MainPath = "$FindBin::Bin";
 

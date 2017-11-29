@@ -2,7 +2,7 @@
 use strict;
 use Getopt::Long qw(GetOptions);
 use FindBin;
-use lib "$FindBin::Bin/lib";
+use lib "$FindBin::Bin/../lib";
 use Routines;
 my $MainPath = "$FindBin::Bin";
 
