@@ -32,13 +32,14 @@ $Iter         = $ARGV[6];
 
 
 my($LinesOnTrainingFile, $Line, $ColumnsOnTrainingFile, $N, $MetaData,
-   $LinesOnMetaDataFile, $ColumnsOnMetaDataFile, $GlobalHits,
-   $Region, $Element, $Class, $nClasses, $Classification,
-   $Counter, $Hit, $Count, $Feature, $ElementHit, $ElementHits, $FeatureHit, $FeatureHits,
-   $nFeature, $LinesOnQryFile, $ColumnsOnQryFile, $QryHit, $QryElement, $PossibleClass,
-   $Probabilities, $Column, $pQryClass, $cpQryClass, $ReportFile, $pHitFeatureClass,
-   $HigherClassLen, $EstimatedFeature, $NewElement, $BootstrapFile, $cmd, $BootstrapedMetadata,
-   $Qry,$LinesOnClassification, $ColumnsOnClassification, $Replaces);
+   $LinesOnMetaDataFile, $ColumnsOnMetaDataFile, $GlobalHits, $Region, $Element,
+   $Class, $nClasses, $Classification, $Counter, $Hit, $Count, $Feature,
+   $ElementHit, $ElementHits, $FeatureHit, $FeatureHits, $nFeature,
+   $LinesOnQryFile, $ColumnsOnQryFile, $QryHit, $QryElement, $PossibleClass,
+   $Probabilities, $Column, $pQryClass, $cpQryClass, $ReportFile,
+   $pHitFeatureClass, $HigherClassLen, $EstimatedFeature, $NewElement,
+   $BootstrapFile, $cmd, $BootstrapedMetadata, $Qry,$LinesOnClassification,
+   $ColumnsOnClassification, $Replaces);
 my($i, $j, $k, $l);
 my(@TrainingFile, @TrainingFileFields, @TrainingMatrix, @MetaDataField, @MetaDataFile,
    @MetaDataFileFields, @MetaDataMatrix, @Classes, @Elements, @QryFile, @QryFileFields,
@@ -194,16 +195,21 @@ $ColumnsOnClassification = scalar@BootstrapedQryFields;
 
 foreach $Class (@Classes){
         if ($Elements{$Class} < $HigherClassLen){
-                print "\n$Class = $Elements{$Class}";
                 $Replaces = $HigherClassLen - $Elements{$Class};
-                #for ($j=0;$j<$LinesOnClassification;$j++){
                 $i = 0;
-                        if ($BootstrapedQryMatrix[$i][1] eq $Class && $i <= $Replaces){
-                                        print "\n$BootstrapedQryMatrix[$j][0]\t$BootstrapedQryMatrix[$j][1]\t$BootstrapFile{$Class}\n";
-                                #}
+                for ($j=0; $j<$LinesOnClassification; $j++){
+                        if ($BootstrapedQryMatrix[$j][1] eq $Class && $i < $Replaces){
+                                open (FILE, ">>$BootstrapedMetadata");
+                                print FILE "\n$BootstrapedQryMatrix[$j][0],$BootstrapedQryMatrix[$j][1]";
+                                close FILE;
+                                for ($k=$ColumnsOnTrainingFile+1; $k<$ColumnsOnTrainingFile+$Replaces;$k++){
+                                        for ($l=0; $l< $LinesOnTrainingFile; $l++){
+                                                
+                                        }
+                                }
                                 $i++;
                         }
-                #}
+                }
         }
 }
 
