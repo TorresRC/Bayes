@@ -63,6 +63,7 @@ if($Stat == 1){
 #}
 #$ColumnsOnTrainingFile = scalar@TrainingFileFields;
 ($LinesOnTrainingFile, $ColumnsOnTrainingFile, @TrainingMatrix) = Matrix($TrainingFile);
+$nFeature = $LinesOnTrainingFile-1;
 $N = $ColumnsOnTrainingFile-1;
 
 #Loading the bolean query file
@@ -175,8 +176,9 @@ for ($i=1;$i<$ColumnsOnQryFile;$i++){
                         $Feature = $QryMatrix[$j][0];
                         $QryHit = $QryMatrix[$j][$i];
                         if($QryHit == 1){
-                                $pQryClass = $pQryClass*$pHitsOfFeaturesInClass{$Feature}{$Class};
-                                $cpQryClass = $cpQryClass*$cpHitsOfFeaturesInClass{$Feature}{$Class};
+                                $pQryClass = ((log10($pQryClass))**2)*((log10($pHitsOfFeaturesInClass{$Feature}{$Class}))**2);
+                                $cpQryClass = ((log10($cpQryClass))**2)*((log10($cpHitsOfFeaturesInClass{$Feature}{$Class}))**2);
+                                #print "\npQryClass= $pQryClass\tcpQryClass=$cpQryClass\tpHits=$pHitsOfFeaturesInClass{$Feature}{$Class}\tcpHits=$cpHitsOfFeaturesInClass{$Feature}{$Class}\n";
                         }
                 }
                 $pQry{$Class}{$QryElement} = $pQryClass;

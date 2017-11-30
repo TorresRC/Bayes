@@ -107,7 +107,8 @@ for ($i=0;$i<$nClasses;$i++){
 
 $max_val_key = reduce { $Elements{$a} > $Elements{$b} ? $a : $b } keys %Elements;
 $HigherClassLen = $Elements{$max_val_key};
-$Iter = $HigherClassLen*2;
+#$Iter = $HigherClassLen*2;
+$Iter = 1000;
 
 foreach $Class(@Classes){
 	for ($i=1;$i<$LinesOnTrainingFile;$i++){
