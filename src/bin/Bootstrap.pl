@@ -2,7 +2,6 @@
 use strict;
 use List::MoreUtils qw(uniq);
 use List::Util qw(reduce);
-#use Math::Random::Secure qw(rand);
 use FindBin;
 use lib "$FindBin::Bin/../lib";
 use Routines;
@@ -39,11 +38,13 @@ my($LinesOnTrainingFile, $Line, $ColumnsOnTrainingFile, $N, $MetaData,
    $Probabilities, $Column, $pQryClass, $cpQryClass, $ReportFile,
    $pHitFeatureClass, $HigherClassLen, $EstimatedFeature, $NewElement,
    $BootstrapFile, $cmd, $BootstrapedMetadata, $Qry,$LinesOnClassification,
-   $ColumnsOnClassification, $Replaces);
+   $ColumnsOnClassification, $Repeats, $BootstrappedTraining, $LinesOnBootstrappedClass,
+   $ColumnsOnBootstrappedClass, $NewColumns);
 my($i, $j, $k, $l);
 my(@TrainingFile, @TrainingFileFields, @TrainingMatrix, @MetaDataField, @MetaDataFile,
    @MetaDataFileFields, @MetaDataMatrix, @Classes, @Elements, @QryFile, @QryFileFields,
-   @QryMatrix, @Bootstrap, @BootstrapedQry, @BootstrapedQryFields, @BootstrapedQryMatrix);
+   @QryMatrix, @Bootstrap, @BootstrapedQry, @BootstrapedQryFields, @ClassificationMatrix,
+   @BootstrappedClassMatrix);
 my(%ClassOfElement, %TotalFeatureHits, %HitsOfFeaturesInClass, %pHitsOfFeaturesInClass,
    %cpHitsOfFeaturesInClass,
    %ElementClass, %Elements, %pClass, %cpClass, %ClassHits, %FeatureClass,
@@ -52,47 +53,28 @@ my $TrainingMatrix = [ ];
 my $QryMatrix = [ ];
 my $Report = [ ];
 my $Bootstrap = [ ];
-my $BootstrapedQryMatrix = [ ];
+my $BootstrappedTrainingMatrix = [ ];
 
-$ReportFile = $MainPath ."/". "Prediction.csv";
+$ReportFile = $OutPath ."/". "Prediction.csv";
 $Classification = $OutPath ."/". "AsignedClass.txt";
-$BootstrapedMetadata = $OutPath ."/". "Bootstraped_Metadata.csv";
+$BootstrapedMetadata = $OutPath ."/". "Bootstrapped_Metadata.csv";
+$BootstrappedTraining = $OutPath ."/". "Bootstrapped_Training.csv";
 
 if($Stat == 1){
-        $Probabilities = $MainPath ."/". "Probabilities.csv";
+        $Probabilities = $OutPath ."/". "Probabilities.csv";
 }
 
 #Loading the bolean training file
-@TrainingFile = ReadFile($TrainingFile);
-$LinesOnTrainingFile = scalar@TrainingFile;
-$nFeature = $LinesOnTrainingFile-1;
-for ($i=0; $i<$LinesOnTrainingFile; $i++){
-	$Line = $TrainingFile[$i];
-	@TrainingFileFields = split(",",$Line);
-	push (@TrainingMatrix, [@TrainingFileFields]);
-}
-$ColumnsOnTrainingFile = scalar@TrainingFileFields;
+($LinesOnTrainingFile, $ColumnsOnTrainingFile, @TrainingMatrix) = Matrix($TrainingFile);
 $N = $ColumnsOnTrainingFile-1;
 
+
 #Loading the bolean query file
-@QryFile = ReadFile($QryFile);
-$LinesOnQryFile = scalar@QryFile;
-for ($i=0; $i<$LinesOnQryFile; $i++){
-	$Line = $QryFile[$i];
-	@QryFileFields = split(",",$Line);
-	push (@QryMatrix, [@QryFileFields]);
-}
-$ColumnsOnQryFile = scalar@QryFileFields;
+($LinesOnQryFile,$ColumnsOnQryFile, @QryMatrix) = Matrix($QryFile);
 
 #Loading the metadata file
 @MetaDataFile = ReadFile($MetadataFile);
-$LinesOnMetaDataFile = scalar@MetaDataFile;
-for ($i=0; $i<$LinesOnMetaDataFile; $i++){
-	$Line = $MetaDataFile[$i];
-	@MetaDataFileFields = split(",",$Line);
-	push (@MetaDataMatrix, [@MetaDataFileFields]);
-}
-$ColumnsOnMetaDataFile = scalar@MetaDataFileFields;
+($LinesOnMetaDataFile, $ColumnsOnMetaDataFile, @MetaDataMatrix) = Matrix($MetadataFile);
 
 # Obtaining classes
 print "\nThe following columns were detected as possible classes:";
@@ -120,6 +102,7 @@ for ($i=0;$i<$nClasses;$i++){
                         $Elements{$Classes[$i]}++; #   <-------- Number of elements in each class
                 }
         }
+#################################################################################
 }
 
 $max_val_key = reduce { $Elements{$a} > $Elements{$b} ? $a : $b } keys %Elements;
@@ -138,7 +121,7 @@ foreach $Class(@Classes){
 	}
 }
 
-$Bootstrap -> [0][0] = "";
+$Bootstrap -> [0][0] = "Feature";
 for ($i=1;$i<$LinesOnTrainingFile;$i++){
         $Feature = $TrainingMatrix[$i][0];
         $Bootstrap -> [$i][0] = $Feature;
@@ -153,7 +136,7 @@ foreach $Class(@Classes){
                                 $Bootstrap -> [0][$i] = $NewElement;
                                 
                                 $pHitFeatureClass = $HitsOfFeaturesInClass{$Feature}{$Class}/$Elements{$Class};
-                                if (rand()<= $pHitFeatureClass){
+                                if (rand() <= $pHitFeatureClass){
                                         $EstimatedFeature = 1;    
                                 }else{
                                         $EstimatedFeature = 0;
@@ -171,11 +154,11 @@ foreach $Class(@Classes){
                         print FILE "\n";
                 }
                 close FILE;
-                $cmd = `perl BayesianClassifier.pl $TrainingFile $MetadataFile $Qry $OutPath 1 0`;
+                $cmd = `perl $MainPath/BayesianClassifier.pl $TrainingFile $MetadataFile $Qry $OutPath 1 0`;
         }
 }
 
-# Building a bootstrapped Metadata file 
+# Initializing the bootstrapped Metadata file 
 open (FILE, ">$BootstrapedMetadata");
         for ($i=0; $i<$LinesOnMetaDataFile; $i++){
                 $Line = $MetaDataFile[$i];
@@ -183,35 +166,52 @@ open (FILE, ">$BootstrapedMetadata");
         }
 close FILE;
 
-# Put the bootstrapped metadata into an array of arrays
-@BootstrapedQry = ReadFile($Classification);
-$LinesOnClassification = scalar@BootstrapedQry;
-for ($i=0; $i<$LinesOnClassification; $i++){
-	$Line = $BootstrapedQry[$i];
-	@BootstrapedQryFields = split(",",$Line);
-	push (@BootstrapedQryMatrix, [@BootstrapedQryFields]);
+# Initializing the bootstrapped Training file
+for ($i=0; $i<$LinesOnTrainingFile;$i++){
+        for ($j=0; $j<$ColumnsOnTrainingFile; $j++){
+                $BootstrappedTrainingMatrix -> [$i][$j] = $TrainingMatrix [$i][$j];
+        }
 }
-$ColumnsOnClassification = scalar@BootstrapedQryFields;
 
+# Put the bootstrapped metadata into an array of arrays
+($LinesOnClassification, $ColumnsOnClassification, @ClassificationMatrix) = Matrix($Classification);
+
+$NewColumns = $ColumnsOnTrainingFile;
+#$NewColumns = $ColumnsOnTrainingFile+1;
 foreach $Class (@Classes){
         if ($Elements{$Class} < $HigherClassLen){
-                $Replaces = $HigherClassLen - $Elements{$Class};
+                ($LinesOnBootstrappedClass, $ColumnsOnBootstrappedClass, @BootstrappedClassMatrix) = Matrix($BootstrapFile{$Class});
+
+                $Repeats = $HigherClassLen - $Elements{$Class};
                 $i = 0;
                 for ($j=0; $j<$LinesOnClassification; $j++){
-                        if ($BootstrapedQryMatrix[$j][1] eq $Class && $i < $Replaces){
+                        if ($ClassificationMatrix[$j][1] eq $Class && $i < $Repeats){
+                                
                                 open (FILE, ">>$BootstrapedMetadata");
-                                print FILE "\n$BootstrapedQryMatrix[$j][0],$BootstrapedQryMatrix[$j][1]";
+                                        print FILE "$ClassificationMatrix[$j][0],$ClassificationMatrix[$j][1]\n";
                                 close FILE;
-                                for ($k=$ColumnsOnTrainingFile+1; $k<$ColumnsOnTrainingFile+$Replaces;$k++){
-                                        for ($l=0; $l< $LinesOnTrainingFile; $l++){
-                                                
+                                
+                                for ($k=0; $k<$ColumnsOnBootstrappedClass; $k++){
+                                        if ($BootstrappedClassMatrix[0][$k] eq $ClassificationMatrix[$j][0]){
+                                                for ($l=0; $l<$LinesOnBootstrappedClass; $l++){
+                                                        $BootstrappedTrainingMatrix -> [$l][$NewColumns] = $BootstrappedClassMatrix [$l][$k];
+                                                }
                                         }
                                 }
                                 $i++;
+                                $NewColumns++;
                         }
                 }
         }
 }
 
-exit;
+open (FILE, ">$BootstrappedTraining");
+for ($i=0; $i<$LinesOnTrainingFile;$i++){
+        for ($j=0; $j<$NewColumns; $j++){
+                print FILE $BootstrappedTrainingMatrix -> [$i][$j], ",";
+        }
+        print FILE "\n";
+}
+close FILE;
 
+exit;

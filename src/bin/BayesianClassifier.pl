@@ -53,36 +53,39 @@ if($Stat == 1){
 }
 
 #Loading the bolean training file
-@TrainingFile = ReadFile($TrainingFile);
-$LinesOnTrainingFile = scalar@TrainingFile;
-$nFeature = $LinesOnTrainingFile-1;
-for ($i=0; $i<$LinesOnTrainingFile; $i++){
-	$Line = $TrainingFile[$i];
-	@TrainingFileFields = split(",",$Line);
-	push (@TrainingMatrix, [@TrainingFileFields]);
-}
-$ColumnsOnTrainingFile = scalar@TrainingFileFields;
+#@TrainingFile = ReadFile($TrainingFile);
+#$LinesOnTrainingFile = scalar@TrainingFile;
+#$nFeature = $LinesOnTrainingFile-1;
+#for ($i=0; $i<$LinesOnTrainingFile; $i++){
+#	$Line = $TrainingFile[$i];
+#	@TrainingFileFields = split(",",$Line);
+#	push (@TrainingMatrix, [@TrainingFileFields]);
+#}
+#$ColumnsOnTrainingFile = scalar@TrainingFileFields;
+($LinesOnTrainingFile, $ColumnsOnTrainingFile, @TrainingMatrix) = Matrix($TrainingFile);
 $N = $ColumnsOnTrainingFile-1;
 
 #Loading the bolean query file
-@QryFile = ReadFile($QryFile);
-$LinesOnQryFile = scalar@QryFile;
-for ($i=0; $i<$LinesOnQryFile; $i++){
-	$Line = $QryFile[$i];
-	@QryFileFields = split(",",$Line);
-	push (@QryMatrix, [@QryFileFields]);
-}
-$ColumnsOnQryFile = scalar@QryFileFields;
+#@QryFile = ReadFile($QryFile);
+#$LinesOnQryFile = scalar@QryFile;
+#for ($i=0; $i<$LinesOnQryFile; $i++){
+#	$Line = $QryFile[$i];
+#	@QryFileFields = split(",",$Line);
+#	push (@QryMatrix, [@QryFileFields]);
+#}
+#$ColumnsOnQryFile = scalar@QryFileFields;
+($LinesOnQryFile, $ColumnsOnQryFile, @QryMatrix) = Matrix($QryFile);
 
 #Loading the metadata file
-@MetaDataFile = ReadFile($MetadataFile);
-$LinesOnMetaDataFile = scalar@MetaDataFile;
-for ($i=0; $i<$LinesOnMetaDataFile; $i++){
-	$Line = $MetaDataFile[$i];
-	@MetaDataFileFields = split(",",$Line);
-	push (@MetaDataMatrix, [@MetaDataFileFields]);
-}
-$ColumnsOnMetaDataFile = scalar@MetaDataFileFields;
+#@MetaDataFile = ReadFile($MetadataFile);
+#$LinesOnMetaDataFile = scalar@MetaDataFile;
+#for ($i=0; $i<$LinesOnMetaDataFile; $i++){
+#	$Line = $MetaDataFile[$i];
+#	@MetaDataFileFields = split(",",$Line);
+#	push (@MetaDataMatrix, [@MetaDataFileFields]);
+#}
+#$ColumnsOnMetaDataFile = scalar@MetaDataFileFields;
+($LinesOnMetaDataFile, $ColumnsOnMetaDataFile, @MetaDataMatrix) = Matrix($MetadataFile);
 
 # Obtaining classes
 print "\nThe following columns were detected as possible classes:";
@@ -110,6 +113,7 @@ for ($i=0;$i<$nClasses;$i++){
                         $Elements{$Classes[$i]}++; #   <-------- Number of elements in each class
 		}
 	}
+################################################################################
 	$pClass{$Classes[$i]} = $Elements{$Classes[$i]}/$N; # Probability of each class
 	$cpClass{$Classes[$i]} = 1-$Elements{$Classes[$i]}/$N; # Complement probability of each class
 }
@@ -142,7 +146,7 @@ foreach $Class(@Classes){
 	for ($i=1;$i<$LinesOnTrainingFile;$i++){
 		$Feature = $TrainingMatrix[$i][0];
                 $TotalFeatureHits{$Feature} = 0;
-		for ($j=1;$j<$ColumnsOnTrainingFile; $j++){         
+		for ($j=1;$j<$ColumnsOnTrainingFile; $j++){
 			$Element = $TrainingMatrix[0][$j];
                         $TotalFeatureHits{$Feature} += $TrainingMatrix[$i][$j]+$PsCounts; # <- Total Feature Hits
 			if ($ClassOfElement{$Element} eq $Class){
@@ -192,7 +196,7 @@ for($i=1; $i<$ColumnsOnQryFile; $i++){
       $Report -> [$i][0] = $QryElement;
       $Report -> [0][$j+1] = $Class;
       $Class = $Classes[$j];
-      
+
       print PFILE "Class $Class -> [p]-$pQry{$Class}{$QryElement}\t[cp]-$cpQry{$Class}{$QryElement}\n";
       if ($pQry{$Class}{$QryElement} > $cpQry{$Class}{$QryElement}){
          $Report -> [$i][$j+1] = "Accepted";
@@ -204,7 +208,7 @@ for($i=1; $i<$ColumnsOnQryFile; $i++){
    print CFILE "\n";
 }
 close PFILE;
-   
+
 open (FILE, ">$ReportFile");
    for($i=0;$i<$ColumnsOnQryFile;$i++){
       for($j=0;$j<$nClasses+1;$j++){
