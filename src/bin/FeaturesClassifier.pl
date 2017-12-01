@@ -195,7 +195,8 @@ for ($i=0; $i<$nClasses; $i++){
       }elsif ($Method eq "Chi2"){    # <------------------------------------ Chi squared
         $Test{$Feature} = (($nConfusion*(($a*$d)-($b*$c))**2))/(($a+$c)*($a+$b)*($b+$d)*($c+$d));
       }elsif ($Method eq "OddsR"){
-        $Test{$Feature} = log10(($a*$d)/($b*$c));
+        #$Test{$Feature} = log10(($a*$d)/($b*$c));
+        $Test{$Feature} = ($a*$d)/($b*$c);
       }elsif ($Method eq "MI"){      # Mutual information
          $Test{$Feature} = log10(($a*$nConfusion)/(($a+$b)*($a+$c)));
       }
