@@ -63,6 +63,7 @@ if($Stat == 1){
 #}
 #$ColumnsOnTrainingFile = scalar@TrainingFileFields;
 ($LinesOnTrainingFile, $ColumnsOnTrainingFile, @TrainingMatrix) = Matrix($TrainingFile);
+$nFeature = $LinesOnTrainingFile-1;
 $N = $ColumnsOnTrainingFile-1;
 
 #Loading the bolean query file
