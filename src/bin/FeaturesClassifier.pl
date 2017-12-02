@@ -187,7 +187,6 @@ for ($i=0; $i<$nClasses; $i++){
          $Test{$Feature} = ((-1*(($a+$c)/$nConfusion))*log10(($a+$c)/$nConfusion))+
                            (($a/$nConfusion)*log10($a/($a+$b)))+
                            (($c/$nConfusion)*log10($c/($c+$d)));
-         
                            #(($a/$nConfusion)*(log2(($nConfusion*$a)/(($a+$b)*($a+$c)))))+
                            #(($c/$nConfusion)*(log2(($nConfusion*$c)/(($c+$d)*($c+$a)))))+
                            #(($b/$nConfusion)*(log2(($nConfusion*$b)/(($b+$a)*($b+$d)))))+
@@ -210,10 +209,13 @@ for ($i=0; $i<$nClasses; $i++){
 # Building output file
 open (FILE, ">$TestReport");
 for ($i=0;$i<$LinesOnTrainingFile;$i++){
-   for ($j=0;$j<5;$j++){
-        if($j < 4){
+   #for ($j=0;$j<5;$j++){
+   #     if($j < 4){
+   for ($j=0;$j<$nClasses+1;$j++){
+        if($j < $nClasses){
                 print FILE $Report -> [$i][$j], ",";
-        }elsif($j == 4){
+        }elsif($j == $nClasses){
+        #}elsif($j == 4){
                 print FILE $Report -> [$i][$j];
         }
    }
