@@ -50,11 +50,11 @@ my $TrainingMatrix = [ ];
 my $QryMatrix = [ ];
 my $Report = [ ];
 
-$ReportFile = $MainPath ."/". "Prediction.csv";
+$ReportFile = $OutPath ."/". "Prediction.csv";
 $Classification = $OutPath ."/". "AsignedClass.txt";
 
 if($Stat == 1){
-        $Probabilities = $MainPath ."/". "Probabilities.csv";
+        $Probabilities = $OutPath ."/". "Probabilities.csv";
 }
 
 #Loading the bolean training file
@@ -95,8 +95,8 @@ for ($i=0;$i<$nClasses;$i++){
 		}
 	}
 ################################################################################
-	$pClass{$Classes[$i]} = $Elements{$Classes[$i]}/$N; # Probability of each class
-	$cpClass{$Classes[$i]} = 1-$Elements{$Classes[$i]}/$N; # Complement probability of each class
+	$pClass{$Classes[$i]} = -log10($Elements{$Classes[$i]}/$N); # Probability of each class
+	$cpClass{$Classes[$i]} = -log10(1-$Elements{$Classes[$i]}/$N); # Complement probability of each class
 }
 
 # Hits into the training matrix
@@ -140,8 +140,8 @@ foreach $Class(@Classes){
 for ($i=1;$i<$LinesOnTrainingFile;$i++){
         $Feature = $TrainingMatrix[$i][0];
 	foreach $Class(@Classes){
-                $pHitsOfFeaturesInClass{$Feature}{$Class} = ($HitsOfFeaturesInClass{$Feature}{$Class}+1)/($ClassHits{$Class}+$nFeature);
-                $cpHitsOfFeaturesInClass{$Feature}{$Class} = ($TotalFeatureHits{$Feature}-$HitsOfFeaturesInClass{$Feature}{$Class}+1)/(($GlobalHits-$ClassHits{$Class})+$nFeature);
+                $pHitsOfFeaturesInClass{$Feature}{$Class} = -log10(($HitsOfFeaturesInClass{$Feature}{$Class}+1)/($ClassHits{$Class}+$nFeature));
+                $cpHitsOfFeaturesInClass{$Feature}{$Class} = -log10(($TotalFeatureHits{$Feature}-$HitsOfFeaturesInClass{$Feature}{$Class}+1)/(($GlobalHits-$ClassHits{$Class})+$nFeature));
 	}
 }
 
@@ -162,8 +162,8 @@ for ($i=1;$i<$ColumnsOnQryFile;$i++){
                                 $cpQryClass = $cpQryClass*$cpHitsOfFeaturesInClass{$Feature}{$Class};
                         }
                 }
-                $pQry{$Class}{$QryElement} = $pQryClass;
-                $cpQry{$Class}{$QryElement} = $cpQryClass;
+                $pQry{$Class}{$QryElement} = -log10($pQryClass);
+                $cpQry{$Class}{$QryElement} = -log10($cpQryClass);
         }
 }
 
