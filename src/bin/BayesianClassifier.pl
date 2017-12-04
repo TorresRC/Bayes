@@ -1,4 +1,9 @@
 #!/usr/bin/perl -w
+
+#################################################################################
+#By:       Roberto C. Torres & Mauricio Flores                                  #
+#e-mail:   torres.roberto.c@gmail.com                                           #
+#################################################################################
 use strict;
 use List::MoreUtils qw(uniq);
 use FindBin;
@@ -53,39 +58,14 @@ if($Stat == 1){
 }
 
 #Loading the bolean training file
-#@TrainingFile = ReadFile($TrainingFile);
-#$LinesOnTrainingFile = scalar@TrainingFile;
-#$nFeature = $LinesOnTrainingFile-1;
-#for ($i=0; $i<$LinesOnTrainingFile; $i++){
-#	$Line = $TrainingFile[$i];
-#	@TrainingFileFields = split(",",$Line);
-#	push (@TrainingMatrix, [@TrainingFileFields]);
-#}
-#$ColumnsOnTrainingFile = scalar@TrainingFileFields;
 ($LinesOnTrainingFile, $ColumnsOnTrainingFile, @TrainingMatrix) = Matrix($TrainingFile);
 $nFeature = $LinesOnTrainingFile-1;
 $N = $ColumnsOnTrainingFile-1;
 
 #Loading the bolean query file
-#@QryFile = ReadFile($QryFile);
-#$LinesOnQryFile = scalar@QryFile;
-#for ($i=0; $i<$LinesOnQryFile; $i++){
-#	$Line = $QryFile[$i];
-#	@QryFileFields = split(",",$Line);
-#	push (@QryMatrix, [@QryFileFields]);
-#}
-#$ColumnsOnQryFile = scalar@QryFileFields;
 ($LinesOnQryFile, $ColumnsOnQryFile, @QryMatrix) = Matrix($QryFile);
 
 #Loading the metadata file
-#@MetaDataFile = ReadFile($MetadataFile);
-#$LinesOnMetaDataFile = scalar@MetaDataFile;
-#for ($i=0; $i<$LinesOnMetaDataFile; $i++){
-#	$Line = $MetaDataFile[$i];
-#	@MetaDataFileFields = split(",",$Line);
-#	push (@MetaDataMatrix, [@MetaDataFileFields]);
-#}
-#$ColumnsOnMetaDataFile = scalar@MetaDataFileFields;
 ($LinesOnMetaDataFile, $ColumnsOnMetaDataFile, @MetaDataMatrix) = Matrix($MetadataFile);
 
 # Obtaining classes
@@ -176,9 +156,10 @@ for ($i=1;$i<$ColumnsOnQryFile;$i++){
                         $Feature = $QryMatrix[$j][0];
                         $QryHit = $QryMatrix[$j][$i];
                         if($QryHit == 1){
-                                $pQryClass = ((log10($pQryClass))**2)*((log10($pHitsOfFeaturesInClass{$Feature}{$Class}))**2);
-                                $cpQryClass = ((log10($cpQryClass))**2)*((log10($cpHitsOfFeaturesInClass{$Feature}{$Class}))**2);
-                                #print "\npQryClass= $pQryClass\tcpQryClass=$cpQryClass\tpHits=$pHitsOfFeaturesInClass{$Feature}{$Class}\tcpHits=$cpHitsOfFeaturesInClass{$Feature}{$Class}\n";
+                                #$pQryClass = ((log10($pQryClass))**2)*((log10($pHitsOfFeaturesInClass{$Feature}{$Class}))**2);
+                                #$cpQryClass = ((log10($cpQryClass))**2)*((log10($cpHitsOfFeaturesInClass{$Feature}{$Class}))**2);
+                                $pQryClass = $pQryClass*$pHitsOfFeaturesInClass{$Feature}{$Class};
+                                $cpQryClass = $cpQryClass*$cpHitsOfFeaturesInClass{$Feature}{$Class};
                         }
                 }
                 $pQry{$Class}{$QryElement} = $pQryClass;
@@ -199,7 +180,7 @@ for($i=1; $i<$ColumnsOnQryFile; $i++){
       $Report -> [0][$j+1] = $Class;
       $Class = $Classes[$j];
 
-      print PFILE "Class $Class -> [p]-$pQry{$Class}{$QryElement}\t[cp]-$cpQry{$Class}{$QryElement}\n";
+      print PFILE "Class $Class -> [p]=$pQry{$Class}{$QryElement}\t[cp]=$cpQry{$Class}{$QryElement}\n";
       if ($pQry{$Class}{$QryElement} > $cpQry{$Class}{$QryElement}){
          $Report -> [$i][$j+1] = "Accepted";
          print CFILE ",$Class";

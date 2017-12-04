@@ -11,7 +11,7 @@ use lib "$FindBin::Bin/../lib";
 use Routines;
 my $MainPath = "$FindBin::Bin";
 
-my ($Usage, $TrainingFile, $MetadataFile, $OutPath, $Method, $Chi2, $IG, $OddsR,
+my ($Usage, $TrainingFile, $MetadataFile, $OutPath, $Method, $X2, $IG, $OR,
     $PsCounts, $MI, $AllClassesPlot, $ForClassPlot, $HeatMapPlot, $Correlation,
     $Sort, $Clusters, $Dendrogram);
 
@@ -30,11 +30,7 @@ $TrainingFile   = $ARGV[0];
 $MetadataFile   = $ARGV[1];
 $OutPath        = $ARGV[2];
 $PsCounts       = $ARGV[3];
-$Method         = $ARGV[4];  # <- Chi2, IG, OddsR, MI
-#$IG             = $ARGV[4];
-#$Chi2           = $ARGV[5];
-#$OddsR          = $ARGV[6];
-#$MI             = $ARGV[7];
+$Method         = $ARGV[4];  # <- X2, IG, OR, MI
 $AllClassesPlot = $ARGV[5];
 $ForClassPlot   = $ARGV[6];
 $HeatMapPlot    = $ARGV[7];
@@ -43,39 +39,40 @@ $Sort           = $ARGV[9];
 $Clusters       = $ARGV[10];
 $Dendrogram     = $ARGV[11];
 
-my($Test, $TestReport, $Plot, $HeatMap, $PlotRScript, $LinesOnTrainingFile,
-   $nFeature, $Line, $ColumnsOnTrainingFile, $N, $LinesOnMetaDataFile,
-   $ColumnsOnMetaDataFile, $PossibleClass, $Column, $Class, $nClasses, $Element,
-   $GlobalHits, $Hit, $Feature, $iClass, $a, $b, $c, $d, $nConfusion,
-   $ChiConfidence, $Round, $HeatMapRScript, $Matrix);
+my($Test, $TestReport, $PercentagesReport, $Plot, $HeatMap, $PlotRScript,
+   $LinesOnTrainingFile, $nFeature, $Line, $ColumnsOnTrainingFile, $N,
+   $LinesOnMetaDataFile, $ColumnsOnMetaDataFile, $PossibleClass, $Column, $Class,
+   $nClasses, $Element, $GlobalHits, $Hit, $Feature, $iClass, $a, $b, $c, $d,
+   $nConfusion, $ChiConfidence, $Round, $HeatMapRScript, $Matrix);
 my($i, $j);
 my(@TrainingFile, @TrainingFileFields, @TrainingMatrix, @MetaDataFile,
    @MetaDataFileFields, @MetaDataMatrix, @Classes, @Elements, @ChiConfidence,
    @ChiConfidences);
 my(%ClassOfElement, %Elements, %pClass, %cpClass, %ClassHits,
-   %HitsOfFeaturesInClass, %TotalFeatureHits, %Test);
+   %HitsOfFeaturesInClass, %TotalFeatureHits, %Test,%PercentageOfFeatureInClass);
 my(%a, %b, %c, %d);
 my $Report = [ ];
+my $Percentages = [ ];
 
 if ($Method eq "IG"){
    $Test = "Information Gain";
-}elsif ($Method eq "Chi2"){
-   $Test = "ChiSquare";
-}elsif ($Method eq "OddsR"){
-   $Test = "OddsRatio";
+}elsif ($Method eq "X2"){
+   $Test = "Chi Square";
+}elsif ($Method eq "OR"){
+   $Test = "Odds Ratio";
 }elsif ($Method eq "MI"){
    $Test = "Mutual Information";
 }else {
-   print "\nYou should select only one test option (--Chi2, --MLE or --OddsR)\n\tProgram finished!\n\n";
+   print "\nYou should select only one test option (--X2, --MLE or --OR)\n\tProgram finished!\n\n";
    exit;
 }
 
-$TestReport = $OutPath ."/". $Test . ".csv";
-$Plot       = $OutPath ."/". $Test . "_DotPlot.pdf";
-$HeatMap    = $OutPath ."/". $Test . "_HeatMap.png";
-$PlotRScript    = $OutPath ."/". "DotPlotScript.R";
-$HeatMapRScript = $OutPath ."/". "HeatMapScript.R";
-
+$TestReport        = $OutPath ."/". $Test . ".csv";
+$PercentagesReport = $OutPath ."/". "Percentages.csv";
+$Plot              = $OutPath ."/". $Test . "_DotPlot.pdf";
+$HeatMap           = $OutPath ."/". $Test . "_HeatMap.png";
+$PlotRScript       = $OutPath ."/". "DotPlotScript.R";
+$HeatMapRScript    = $OutPath ."/". "HeatMapScript.R";
 
 # Loading the bolean training file
 @TrainingFile = ReadFile($TrainingFile);
@@ -165,15 +162,18 @@ foreach $Class(@Classes){
 				$HitsOfFeaturesInClass{$Feature}{$Class} += $TrainingMatrix[$i][$j]+$PsCounts; # <- Total Feature Hits in Class
 			}
 		}
+                $PercentageOfFeatureInClass{$Feature}{$Class} = ($HitsOfFeaturesInClass{$Feature}{$Class})/($Elements{$Class})*100; # <- Percentage of Feature Hits in Class
 	}
 }
 
 # Statistic tests
 $Report -> [0][0] = "Feature";
+$Percentages -> [0][0] = "Feature";
 $iClass = 1;
 for ($i=0; $i<$nClasses; $i++){
    $Class = $Classes[$i];
-   $Report -> [0][$i+1] = $Class; 
+   $Report -> [0][$i+1] = $Class;
+   $Percentages -> [0][$i+1] = $Class;
    for ($j=1;$j<$LinesOnTrainingFile;$j++){
       $Feature = $TrainingMatrix[$j][0];
 
@@ -187,14 +187,9 @@ for ($i=0; $i<$nClasses; $i++){
          $Test{$Feature} = ((-1*(($a+$c)/$nConfusion))*log10(($a+$c)/$nConfusion))+
                            (($a/$nConfusion)*log10($a/($a+$b)))+
                            (($c/$nConfusion)*log10($c/($c+$d)));
-         
-                           #(($a/$nConfusion)*(log2(($nConfusion*$a)/(($a+$b)*($a+$c)))))+
-                           #(($c/$nConfusion)*(log2(($nConfusion*$c)/(($c+$d)*($c+$a)))))+
-                           #(($b/$nConfusion)*(log2(($nConfusion*$b)/(($b+$a)*($b+$d)))))+
-                           #(($d/$nConfusion)*(log2(($nConfusion*$d)/(($d+$c)*($d+$b)))));
-      }elsif ($Method eq "Chi2"){    # <------------------------------------ Chi squared
+      }elsif ($Method eq "X2"){    # <------------------------------------ Chi square
         $Test{$Feature} = (($nConfusion*(($a*$d)-($b*$c))**2))/(($a+$c)*($a+$b)*($b+$d)*($c+$d));
-      }elsif ($Method eq "OddsR"){
+      }elsif ($Method eq "OR"){
         #$Test{$Feature} = log10(($a*$d)/($b*$c));
         $Test{$Feature} = ($a*$d)/($b*$c);
       }elsif ($Method eq "MI"){      # Mutual information
@@ -202,24 +197,31 @@ for ($i=0; $i<$nClasses; $i++){
       }
       
       $Report -> [$j][0] = $Feature;
+      $Percentages -> [$j][0] = $Feature;
       $Report -> [$j][$iClass] = $Test{$Feature};
+      $Percentages -> [$j][$iClass] = $PercentageOfFeatureInClass{$Feature}{$Class};
    }
    $iClass++;
 }
 
 # Building output file
 open (FILE, ">$TestReport");
+open (PERCENTAGES, ">$PercentagesReport");
 for ($i=0;$i<$LinesOnTrainingFile;$i++){
-   for ($j=0;$j<5;$j++){
-        if($j < 4){
+   for ($j=0;$j<$nClasses+1;$j++){
+        if($j < $nClasses){
                 print FILE $Report -> [$i][$j], ",";
-        }elsif($j == 4){
+                print PERCENTAGES $Percentages -> [$i][$j], ",";
+        }elsif($j == $nClasses){
                 print FILE $Report -> [$i][$j];
+                print PERCENTAGES $Percentages -> [$i][$j];
         }
    }
    print FILE "\n";
+   print PERCENTAGES "\n";
 }
 close FILE;
+close PERCENTAGES;
 
 # Building dot plot
 print "\n Building Plots...";
@@ -234,7 +236,7 @@ if ($AllClassesPlot eq "on"){
                 foreach $Class(@Classes){
                         print RSCRIPT "+ geom_point(aes(y=$Class,color=\"$Class\"))";
                 }
-                if($Method eq "Chi2"){
+                if($Method eq "X2"){
                         @ChiConfidences = (0.9,0.95,0.975,0.99,0.999);
                         foreach $ChiConfidence(@ChiConfidences){
                                 print RSCRIPT "+ geom_hline(aes(yintercept = qchisq($ChiConfidence, df=$nClasses-1), linetype=\"$ChiConfidence\"))";
@@ -249,8 +251,8 @@ if ($AllClassesPlot eq "on"){
                 
         close RSCRIPT;
         system ("R CMD BATCH $PlotRScript");
+        system ("rm $PlotRScript");
 }
-
 
 # Dot plot for class
 if ($ForClassPlot eq "on"){
@@ -262,7 +264,7 @@ if ($ForClassPlot eq "on"){
                         print FILE "df <- read.csv(\"$TestReport\")" . "\n";
                         print FILE 'ggplot(df, aes(Feature))';
                         print FILE "+ geom_point(aes(y=$Class,color=\"$Class\"))";
-                        if($Method eq "Chi2"){
+                        if($Method eq "X2"){
                                 @ChiConfidences = (0.9,0.95,0.975,0.99,0.999);
                                 foreach $ChiConfidence(@ChiConfidences){
                                         print FILE "+ geom_hline(aes(yintercept = qchisq($ChiConfidence, df=$nClasses-1), linetype=\"$ChiConfidence\"))";
@@ -277,10 +279,10 @@ if ($ForClassPlot eq "on"){
                         
                 close FILE;
                 system ("R CMD BATCH $ClassPlotRScript");
+                system ("rm $ClassPlotRScript");
         }
 }
-
-   
+ 
 # Heat Map;
 if ($HeatMapPlot eq "on"){
         open(RSCRIPT, ">$HeatMapRScript");
@@ -299,27 +301,21 @@ if ($HeatMapPlot eq "on"){
                 
                 print RSCRIPT "df <- read.csv(\"$TestReport\")" . "\n";
                 print RSCRIPT 'rnames <- df[,1]' . "\n";
-                
-                #print RSCRIPT 'mat_data <- data.matrix(df[,2:ncol(df)])' . "\n";
                 print RSCRIPT "$Matrix <- data.matrix(df[,2:ncol(df)])" . "\n";
                 print RSCRIPT "rownames($Matrix) <- rnames" . "\n";
-                
-                
-
                 
                 if ($Correlation eq "on"){
                         print RSCRIPT "$Matrix <- cor($Matrix)" . "\n";
                 }
-
+                
                 print RSCRIPT "heatmap.2($Matrix," . "\n";
-                 
-                print RSCRIPT "main = \"$Test\"," . "\n";                  # Title
+                print RSCRIPT "main = \"$Test\"," . "\n";                        # Title
                 print RSCRIPT 'keysize = 0.8,' . "\n";
                 print RSCRIPT 'key.title = "Confidence",' . "\n";
                 print RSCRIPT 'key.xlab = "Key",' . "\n";
-                print RSCRIPT 'density.info="none",' . "\n";                # Turns of density plot un legend
-                print RSCRIPT 'notecol = "black",' . "\n";                  # font of cell labels in black
-                print RSCRIPT 'trace = "none",' . "\n";                     # Turns of trace lines in heat map
+                print RSCRIPT 'density.info="none",' . "\n";                     # Turns of density plot un legend
+                print RSCRIPT 'notecol = "black",' . "\n";                       # font of cell labels in black
+                print RSCRIPT 'trace = "none",' . "\n";                          # Turns of trace lines in heat map
                 
                 $Round = 5;
                 if ($Correlation eq "on"){
@@ -338,37 +334,39 @@ if ($HeatMapPlot eq "on"){
                 }
                        
                 if ($Sort eq "off"){
-                        print RSCRIPT 'Colv = "NA",' . "\n";                        # Turn off column sort
-                        print RSCRIPT 'Rowv = "NA",' . "\n";                        # Turn off row sort
+                        print RSCRIPT 'Colv = "NA",' . "\n";                     # Turn off column sort
+                        print RSCRIPT 'Rowv = "NA",' . "\n";                     # Turn off row sort
                 }elsif ($Sort eq "on"){
                         if ($Clusters eq "on"){
                                 #print RSCRIPT "distance = distfun($Matrix, method = \"manhattan\")," . "\n";
                                 #print RSCRIPT 'cluster = hclustfun(distance, method = "ward"),' . "\n";
-                                print RSCRIPT "Rowv = as.dendrogram(hclust(dist($Matrix, method = \"manhattan\"), method = \"ward\"))," . "\n";      # apply default clustering method'
-                                print RSCRIPT "Colv = as.dendrogram(hclust(dist($Matrix, method = \"manhattan\"), method = \"ward\"))," . "\n";      # apply default clustering method
+                                print RSCRIPT "Rowv = as.dendrogram(hclust(dist($Matrix, method = \"manhattan\"), method = \"ward\"))," . "\n";      # apply default clustering method just on rows
+                                print RSCRIPT "Colv = as.dendrogram(hclust(dist($Matrix, method = \"manhattan\"), method = \"ward\"))," . "\n";      # apply default clustering method just on columns
                         }
                 }
                 
                 if ($Dendrogram eq "off"){
-                        print RSCRIPT 'dendrogram = "none",' ."\n";                 # Hides dendrogram
+                        print RSCRIPT 'dendrogram = "none",' ."\n";              # Hides dendrogram
                 }elsif($Dendrogram eq "row"){
-                        print RSCRIPT 'dendrogram = "row",' ."\n";
+                        print RSCRIPT 'dendrogram = "row",' ."\n";               # Shows dendrogram for rows
                 }elsif($Dendrogram eq "column"){
-                        print RSCRIPT 'dendrogram = "column",' ."\n";
+                        print RSCRIPT 'dendrogram = "column",' ."\n";            # Shows dendrogram for columns
                 }elsif($Dendrogram eq "both"){
-                        print RSCRIPT 'dendrogram = "both",' ."\n";
+                        print RSCRIPT 'dendrogram = "both",' ."\n";              # Shos dendrogram for rows and columns
                 }
                 
                 print RSCRIPT 'srtCol= 0,' ."\n";
                 print RSCRIPT 'adjCol= c (0.5,1),' ."\n";
                 print RSCRIPT 'cexCol=0.8,' ."\n";
+                print RSCRIPT 'col = Colors)' . "\n";                            # Use defined palette
                 
-                print RSCRIPT 'col = Colors)' . "\n";                       # Use defined palette
                 print RSCRIPT 'dev.off()';
         close RSCRIPT;
         system ("R CMD BATCH $HeatMapRScript");
-        system ("rm $PlotRScript $HeatMapRScript $OutPath/*.Rout $OutPath/Rplots.pdf");
+        system ("rm $HeatMapRScript");
 }
+   
+system ("rm $OutPath/*.Rout $OutPath/Rplots.pdf");
 
 print "Done!\n\n";
 
