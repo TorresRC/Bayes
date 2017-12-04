@@ -1,4 +1,9 @@
 #!/usr/bin/perl -w
+
+#################################################################################
+#By:       Roberto C. Torres & Mauricio Flores                                  #
+#e-mail:   torres.roberto.c@gmail.com                                           #
+#################################################################################
 use strict;
 use List::MoreUtils qw(uniq);
 use FindBin;
@@ -175,7 +180,7 @@ for($i=1; $i<$ColumnsOnQryFile; $i++){
       $Report -> [0][$j+1] = $Class;
       $Class = $Classes[$j];
 
-      print PFILE "Class $Class -> [p]-$pQry{$Class}{$QryElement}\t[cp]-$cpQry{$Class}{$QryElement}\n";
+      print PFILE "Class $Class -> [p]=$pQry{$Class}{$QryElement}\t[cp]=$cpQry{$Class}{$QryElement}\n";
       if ($pQry{$Class}{$QryElement} > $cpQry{$Class}{$QryElement}){
          $Report -> [$i][$j+1] = "Accepted";
          print CFILE ",$Class";
