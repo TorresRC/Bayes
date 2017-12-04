@@ -1,4 +1,9 @@
 #!/usr/bin/perl -w
+
+#################################################################################
+#By:       Roberto C. Torres & Mauricio Flores                                  #
+#e-mail:   torres.roberto.c@gmail.com                                           #
+#################################################################################
 use strict;
 use List::MoreUtils qw(uniq);
 use List::Util qw(reduce);
