@@ -4,33 +4,41 @@ use Getopt::Long qw(GetOptions);
 use FindBin;
 use lib "$FindBin::Bin/../lib";
 use Routines;
-my $MainPath = "$FindBin::Bin";
+my $BinPath = "$FindBin::Bin";
+my $MainPath = "$FindBin::Bin/../";
 
-my $Usage = "USAGE:\n  $0 [--help] [options] [--training -t Absolute File] [--metadata -m File]
-      [--query -q File] [--out Path] [--bayes --mle --chi2]
-\n  Use \'--help\' to print detailed descriptions of options.\n\n";
+my $Usage = "USAGE:\n  $0 [--help] [--clusters -c] [--training -t File] [--metadata -m File]
+      [--query -q File] [--out Path] [--stat -s Test] [--bootstrap -b Bolean]
+\n  Use \'--help\' to print a detailed descriptions of options.\n\n";
 
-my ($Help, $TrainingFile, $MetadataFile, $QryFile, $OutPath, $Bayes, $PsCounts,
-    $Stat, $MLE, $Chi2);
+my ($Help, $TrainingFile, $MetadataFile, $OutPath, $Cluster, $QryFile, $Bayes,
+    $PsCounts, $Stat);
 
 $Bayes    = 0;
-$MLE      = 0;
-$Chi2     = 0;
-$Stat     = 0;
 $PsCounts = 0;
+$Stat     = "off";
 $OutPath  = $MainPath;
 
 GetOptions(
         'help'              => \$Help,
+        
         'training|t:s'      => \$TrainingFile,
         'metadata|m:s'      => \$MetadataFile,
-        'query|q:s'         => \$QryFile,
         'out|o:s'           => \$OutPath,
-        'bayes'             => \$Bayes,
-        'mle'               => \$MLE,
-        'chi2'              => \$Chi2,
-        'pseudo-counts|c:i' => \$PsCounts,
+        
+        'cluster|c:s'       => \$Cluster,
+        
         'stat|s'            => \$Stat,
+        'plot|s'            => \$Plot, $AllClassesPlot $ForClassPlot $HeatMapPlot $Correlation $Sort $Clusters $Dendrogram
+        
+        
+        'pseudo-counts|p:i' => \$PsCounts,
+        'bootstrap|b:s'     => \$QryFile,
+        
+        'bayes'             => \$Bayes,
+        'query|q:s'         => \$QryFile
+        
+        
         ) or die $Usage;
 
 if($Help){
@@ -47,23 +55,23 @@ if($Help){
         exit;
 }
 
-my ($BayesPrediction, $TestClassifier, $Start, $End, $Time, $RunTime, $Period);
+my ($BayesPrediction, $FeaturesClassifier, $Start, $End, $Time, $RunTime, $Period);
 
 $Start = time();
 
 if(defined $TrainingFile && defined $MetadataFile){
 
-   $BayesPrediction  = $MainPath ."/". "BayesianClassifier.pl";
-   $TestClassifier   = $MainPath ."/". "FeaturesClassifier.pl";
+   $BayesPrediction  = $OutPath ."/". "BayesianClassifier.pl";
+   $FeaturesClassifier   = $OutPath ."/". "FeaturesClassifier.pl";
 
-   if($Bayes == 1){
+   if($Cluster eq "Elements"){
       if(defined $QryFile){
          system("perl $BayesPrediction $TrainingFile $MetadataFile $QryFile $OutPath $Stat $PsCounts");
       }else{
          print "\nA bolean query file is needed! \n $Usage";
       }
-   }elsif($Bayes == 0 && $MLE == 1 or $Chi2 == 1){
-      system("perl $TestClassifier $TrainingFile $MetadataFile $OutPath $PsCounts $MLE $Chi2");
+   }elsif($Cluster eq "Features"){
+      system("perl $FeaturesClassifier $TrainingFile $MetadataFile $OutPath $PsCounts $Stat $Plot $HeatMap $Correlation $Sort $Clusters $Dendrogram");
    }else{
       print "\nYou must to select at least but one statistic test (--bayes, --mle or --chi2)\n";
       print "\tFinished\n";
