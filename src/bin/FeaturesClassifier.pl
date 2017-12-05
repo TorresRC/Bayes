@@ -12,8 +12,8 @@ use Routines;
 my $MainPath = "$FindBin::Bin";
 
 my ($Usage, $TrainingFile, $MetadataFile, $OutPath, $Method, $X2, $IG, $OR,
-    $PsCounts, $MI, $AllClassesPlot, $ForClassPlot, $HeatMapPlot, $Correlation,
-    $Sort, $Clusters, $Dendrogram);
+    $PsCounts, $MI, $DotPlot, $HeatMapPlot, $Correlation, $Sort, $Clusters,
+    $Dendrogram, $Threshold);
 
 $Usage = "\nUSAGE\n  $FindBin::Script <Observed Data [Absolute Path]>
                             <Metadata [Absolute Path]>
@@ -31,19 +31,20 @@ $MetadataFile   = $ARGV[1];
 $OutPath        = $ARGV[2];
 $PsCounts       = $ARGV[3];
 $Method         = $ARGV[4];  # <- X2, IG, OR, MI
-$AllClassesPlot = $ARGV[5];
-$ForClassPlot   = $ARGV[6];
-$HeatMapPlot    = $ARGV[7];
-$Correlation    = $ARGV[8];
-$Sort           = $ARGV[9];
-$Clusters       = $ARGV[10];
-$Dendrogram     = $ARGV[11];
+$DotPlot        = $ARGV[5];  # <- AllClasses, ForClass
+$HeatMapPlot    = $ARGV[6];
+$Correlation    = $ARGV[7];
+$Sort           = $ARGV[8];
+$Clusters       = $ARGV[9];
+$Dendrogram     = $ARGV[10];
+$Threshold      = $ARGV[11];
 
 my($Test, $TestReport, $PercentagesReport, $Plot, $HeatMap, $PlotRScript,
    $LinesOnTrainingFile, $nFeature, $Line, $ColumnsOnTrainingFile, $N,
    $LinesOnMetaDataFile, $ColumnsOnMetaDataFile, $PossibleClass, $Column, $Class,
    $nClasses, $Element, $GlobalHits, $Hit, $Feature, $iClass, $a, $b, $c, $d,
-   $nConfusion, $ChiConfidence, $Round, $HeatMapRScript, $Matrix);
+   $nConfusion, $ChiConfidence, $Round, $HeatMapRScript, $Matrix, $Informative,
+   $InformativeFeatures, $InformativeLines);
 my($i, $j);
 my(@TrainingFile, @TrainingFileFields, @TrainingMatrix, @MetaDataFile,
    @MetaDataFileFields, @MetaDataMatrix, @Classes, @Elements, @ChiConfidence,
@@ -67,12 +68,13 @@ if ($Method eq "IG"){
    exit;
 }
 
-$TestReport        = $OutPath ."/". $Test . ".csv";
-$PercentagesReport = $OutPath ."/". "Percentages.csv";
-$Plot              = $OutPath ."/". $Test . "_DotPlot.pdf";
-$HeatMap           = $OutPath ."/". $Test . "_HeatMap.png";
-$PlotRScript       = $OutPath ."/". "DotPlotScript.R";
-$HeatMapRScript    = $OutPath ."/". "HeatMapScript.R";
+$TestReport          = $OutPath ."/". $Test . ".csv";
+$PercentagesReport   = $OutPath ."/". "Percentages.csv";
+$Plot                = $OutPath ."/". $Test . "_DotPlot.pdf";
+$HeatMap             = $OutPath ."/". $Test . "_HeatMap.png";
+$PlotRScript         = $OutPath ."/". "DotPlotScript.R";
+$HeatMapRScript      = $OutPath ."/". "HeatMapScript.R";
+$Informative         = $OutPath ."/". "InformativeFeatures.csv";
 
 # Loading the bolean training file
 @TrainingFile = ReadFile($TrainingFile);
@@ -170,6 +172,7 @@ foreach $Class(@Classes){
 $Report -> [0][0] = "Feature";
 $Percentages -> [0][0] = "Feature";
 $iClass = 1;
+$InformativeLines = 0; 
 for ($i=0; $i<$nClasses; $i++){
    $Class = $Classes[$i];
    $Report -> [0][$i+1] = $Class;
@@ -187,24 +190,44 @@ for ($i=0; $i<$nClasses; $i++){
          $Test{$Feature} = ((-1*(($a+$c)/$nConfusion))*log10(($a+$c)/$nConfusion))+
                            (($a/$nConfusion)*log10($a/($a+$b)))+
                            (($c/$nConfusion)*log10($c/($c+$d)));
-      }elsif ($Method eq "X2"){    # <------------------------------------ Chi square
+      }elsif ($Method eq "X2"){     # <------------------------------------ Chi square
         $Test{$Feature} = (($nConfusion*(($a*$d)-($b*$c))**2))/(($a+$c)*($a+$b)*($b+$d)*($c+$d));
       }elsif ($Method eq "OR"){
-        #$Test{$Feature} = log10(($a*$d)/($b*$c));
         $Test{$Feature} = ($a*$d)/($b*$c);
       }elsif ($Method eq "MI"){      # Mutual information
-         $Test{$Feature} = log10(($a*$nConfusion)/(($a+$b)*($a+$c)));
+        $Test{$Feature} = log10(($a*$nConfusion)/(($a+$b)*($a+$c)));
+      }
+      
+      if ($Test{$Feature} >= $Threshold){
+        $InformativeFeatures -> [$j][0] = $Feature;
+        $InformativeFeatures -> [$j][$iClass] = $PercentageOfFeatureInClass{$Feature}{$Class};
+        $InformativeLines++;
       }
       
       $Report -> [$j][0] = $Feature;
-      $Percentages -> [$j][0] = $Feature;
       $Report -> [$j][$iClass] = $Test{$Feature};
+      
+      $Percentages -> [$j][0] = $Feature;
       $Percentages -> [$j][$iClass] = $PercentageOfFeatureInClass{$Feature}{$Class};
    }
    $iClass++;
 }
 
 # Building output file
+open (FILE, ">$Informative");
+for ($i=0;$i<$InformativeLines;$i++){
+   for ($j=0;$j<$nClasses+1;$j++){
+        if($j < $nClasses){
+                print FILE $InformativeFeatures -> [$i][$j], ",";
+        }elsif($j == $nClasses){
+                print FILE $InformativeFeatures -> [$i][$j];
+        }
+   }
+   print FILE "\n";
+}
+close FILE;
+
+
 open (FILE, ">$TestReport");
 open (PERCENTAGES, ">$PercentagesReport");
 for ($i=0;$i<$LinesOnTrainingFile;$i++){
@@ -228,7 +251,7 @@ print "\n Building Plots...";
 chdir($OutPath);
 
 # Dot plot all clases
-if ($AllClassesPlot eq "on"){
+if ($DotPlot eq "AllClasses"){
         open(RSCRIPT, ">$PlotRScript");
                 print RSCRIPT 'library(ggplot2)' . "\n";
                 print RSCRIPT "df <- read.csv(\"$TestReport\")" . "\n";
@@ -255,7 +278,7 @@ if ($AllClassesPlot eq "on"){
 }
 
 # Dot plot for class
-if ($ForClassPlot eq "on"){
+if ($DotPlot eq "ForClass"){
         foreach $Class(@Classes){
                 my $ClassPlotRScript = $OutPath ."/". $Class . "_DotPlotScript.R";
                 my $ClassPlot = $OutPath ."/". $Test ."_". $Class . "_DotPlot.pdf";
