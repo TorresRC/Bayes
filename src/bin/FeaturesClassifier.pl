@@ -6,6 +6,7 @@
 #################################################################################
 use strict;
 use List::MoreUtils qw(uniq);
+use List::MoreUtils qw(any);
 use FindBin;
 use lib "$FindBin::Bin/../lib";
 use Routines;
@@ -44,25 +45,27 @@ my($Test, $TestReport, $PercentagesReport, $Plot, $HeatMap, $PlotRScript,
    $LinesOnMetaDataFile, $ColumnsOnMetaDataFile, $PossibleClass, $Column, $Class,
    $nClasses, $Element, $GlobalHits, $Hit, $Feature, $iClass, $a, $b, $c, $d,
    $nConfusion, $ChiConfidence, $Round, $HeatMapRScript, $Matrix, $Informative,
-   $InformativeFeatures, $InformativeLines);
+   $InformativeFeatures, $InformativeLines, $CombinedReport, $TestReportLine,
+   $CombinedReportLine);
 my($i, $j);
 my(@TrainingFile, @TrainingFileFields, @TrainingMatrix, @MetaDataFile,
    @MetaDataFileFields, @MetaDataMatrix, @Classes, @Elements, @ChiConfidence,
-   @ChiConfidences);
+   @ChiConfidences, @TestReport, @Combined, @TestReportData);
 my(%ClassOfElement, %Elements, %pClass, %cpClass, %ClassHits,
    %HitsOfFeaturesInClass, %TotalFeatureHits, %Test,%PercentageOfFeatureInClass);
 my(%a, %b, %c, %d);
 my $Report = [ ];
 my $Percentages = [ ];
+my $Combined = [ ];
 
 if ($Method eq "IG"){
-   $Test = "Information Gain";
+   $Test = "Information_Gain";
 }elsif ($Method eq "X2"){
-   $Test = "Chi Square";
+   $Test = "Chi_Square";
 }elsif ($Method eq "OR"){
-   $Test = "Odds Ratio";
+   $Test = "Odds_Ratio";
 }elsif ($Method eq "MI"){
-   $Test = "Mutual Information";
+   $Test = "Mutual_Information";
 }else {
    print "\nYou should select only one test option (--X2, --MLE or --OR)\n\tProgram finished!\n\n";
    exit;
@@ -75,30 +78,15 @@ $HeatMap             = $OutPath ."/". $Test . "_HeatMap.png";
 $PlotRScript         = $OutPath ."/". "DotPlotScript.R";
 $HeatMapRScript      = $OutPath ."/". "HeatMapScript.R";
 $Informative         = $OutPath ."/". "InformativeFeatures.csv";
+$CombinedReport      = $OutPath ."/". $Test . "_Percentages.csv";
 
 # Loading the bolean training file
-@TrainingFile = ReadFile($TrainingFile);
-$LinesOnTrainingFile = scalar@TrainingFile;
+($LinesOnTrainingFile, $ColumnsOnTrainingFile, @TrainingMatrix) = Matrix($TrainingFile);
 $nFeature = $LinesOnTrainingFile-1;
-for ($i=0; $i<$LinesOnTrainingFile; $i++){
-	$Line = $TrainingFile[$i];
-	@TrainingFileFields = split(",",$Line);
-        chomp @TrainingFileFields;
-	push (@TrainingMatrix, [@TrainingFileFields]);
-}
-$ColumnsOnTrainingFile = scalar@TrainingFileFields;
 $N = $ColumnsOnTrainingFile-1;
 
 # Loading the metadata file
-@MetaDataFile = ReadFile($MetadataFile);
-$LinesOnMetaDataFile = scalar@MetaDataFile;
-for ($i=0; $i<$LinesOnMetaDataFile; $i++){
-	$Line = $MetaDataFile[$i];
-	@MetaDataFileFields = split(",",$Line);
-        chomp @MetaDataFileFields;
-	push (@MetaDataMatrix, [@MetaDataFileFields]);
-}
-$ColumnsOnMetaDataFile = scalar@MetaDataFileFields;
+($LinesOnMetaDataFile, $ColumnsOnMetaDataFile, @MetaDataMatrix) = Matrix($MetadataFile);
 
 # Obtaining classes
 print "\nThe following columns were detected as possible classes:";
@@ -198,11 +186,11 @@ for ($i=0; $i<$nClasses; $i++){
         $Test{$Feature} = log10(($a*$nConfusion)/(($a+$b)*($a+$c)));
       }
       
-      if ($Test{$Feature} >= $Threshold){
-        $InformativeFeatures -> [$j][0] = $Feature;
-        $InformativeFeatures -> [$j][$iClass] = $PercentageOfFeatureInClass{$Feature}{$Class};
-        $InformativeLines++;
-      }
+      #if ($Test{$Feature} >= $Threshold){
+      #  $InformativeFeatures -> [$j][0] = $Feature;
+      #  $InformativeFeatures -> [$j][$iClass] = $PercentageOfFeatureInClass{$Feature}{$Class};
+      #  $InformativeLines++;
+      #}
       
       $Report -> [$j][0] = $Feature;
       $Report -> [$j][$iClass] = $Test{$Feature};
@@ -213,21 +201,7 @@ for ($i=0; $i<$nClasses; $i++){
    $iClass++;
 }
 
-# Building output file
-open (FILE, ">$Informative");
-for ($i=0;$i<$InformativeLines;$i++){
-   for ($j=0;$j<$nClasses+1;$j++){
-        if($j < $nClasses){
-                print FILE $InformativeFeatures -> [$i][$j], ",";
-        }elsif($j == $nClasses){
-                print FILE $InformativeFeatures -> [$i][$j];
-        }
-   }
-   print FILE "\n";
-}
-close FILE;
-
-
+## Building output file
 open (FILE, ">$TestReport");
 open (PERCENTAGES, ">$PercentagesReport");
 for ($i=0;$i<$LinesOnTrainingFile;$i++){
@@ -245,6 +219,46 @@ for ($i=0;$i<$LinesOnTrainingFile;$i++){
 }
 close FILE;
 close PERCENTAGES;
+
+for ($i=0;$i<$LinesOnTrainingFile;$i++){
+   for ($j=0;$j<$nClasses*2+1;$j++){
+        if ($j<$nClasses+1){
+                $Combined -> [$i][$j] = $Report -> [$i][$j];
+        }else{
+                $Combined -> [$i][$j] = $Percentages -> [$i][$j-$nClasses];
+        }
+   }
+}
+
+open (FILE, ">$CombinedReport");
+for ($i=0;$i<$LinesOnTrainingFile;$i++){
+   for ($j=0;$j<$nClasses*2+1;$j++){
+        print FILE $Combined -> [$i][$j], ",";
+   }
+   print FILE "\n";
+}
+close FILE;
+
+@TestReport = ReadFile($TestReport);
+@Combined = ReadFile($CombinedReport);
+
+for ($i=0;$i<$LinesOnTrainingFile;$i++){
+        $TestReportLine = $TestReport[$i];
+        $CombinedReportLine = $Combined[$i]; 
+        if ($i == 0){
+                open (FILE, ">$Informative");
+                        print FILE $CombinedReportLine, "\n";
+                close FILE;
+        }else{
+                @TestReportData = split(",",$TestReportLine);
+                if ( any { $_ > $Threshold} @TestReportData){
+                        open (FILE, ">>$Informative");
+                                print FILE $CombinedReportLine, "\n";
+                        close FILE;
+                }
+        }
+}
+
 
 # Building dot plot
 print "\n Building Plots...";
