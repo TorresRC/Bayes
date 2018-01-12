@@ -45,13 +45,14 @@ my($Test, $Run, $TestReport, $PercentagesReport, $Plot, $HeatMap, $PlotRScript,
    $LinesOnTrainingFile, $nFeature, $Line, $ColumnsOnTrainingFile, $N,
    $LinesOnMetaDataFile, $ColumnsOnMetaDataFile, $PossibleClass, $Column, $Class,
    $nClasses, $Element, $GlobalHits, $Hit, $Feature, $iClass, $a, $b, $c, $d,
-   $nConfusion, $ChiConfidence, $Round, $HeatMapRScript, $Matrix, $Informative,
-   $InformativeFeatures, $InformativeLines, $CombinedReport, $TestReportLine,
-   $CombinedReportLine, $BoleanInformative, $TrainingHeader);
+   $nConfusion, $ChiConfidence, $Round, $HeatMapRScript, $Matrix, $CombinedInformative,
+   $TestInformative, $PresenceInformative, $InformativeFeatures, $InformativeLines,
+   $CombinedReport, $TestReportLine, $CombinedReportLine, $BoleanInformative,
+   $TrainingHeader, $PresenceReportLine, $SummaryReport);
 my($i, $j);
 my(@TrainingFile, @TrainingFileFields, @TrainingMatrix, @MetaDataFile,
    @MetaDataFileFields, @MetaDataMatrix, @Classes, @Elements, @ChiConfidence,
-   @ChiConfidences, @TestReport, @Combined, @TestReportData);
+   @ChiConfidences, @TestReport, @Combined, @TestReportData, @Presence);
 my(%ClassOfElement, %Elements, %pClass, %cpClass, %ClassHits,
    %HitsOfFeaturesInClass, %TotalFeatureHits, %Test,%PercentageOfFeatureInClass);
 my(%a, %b, %c, %d);
@@ -99,15 +100,22 @@ my $Percentages = [ ];
 my $Combined = [ ];
         
         print "\n\n\t$TrainingFile\n\n";
-        $TestReport          = $OutPath ."/". $Test . "_Run" . $Run . ".csv";
+        $TestReport          = $OutPath ."/". $Test . "_Values_Run" . $Run . ".csv";
         $PercentagesReport   = $OutPath ."/". "PresencePercentages_Run" . $Run . ".csv";
+        $CombinedReport      = $OutPath ."/". $Test . "_ValuesAndPresencePercentages_Run" . $Run . ".csv";
+        
+        $TestInformative     = $OutPath ."/". $Test . "_ValuesOfInformativeFeatures_Run" . $Run . ".csv";
+        $PresenceInformative = $OutPath ."/". $Test . "_PercentagesOfInformativeFeatures_Run" . $Run . ".csv";
+        $CombinedInformative = $OutPath ."/". $Test . "_ValuesAndPresencePercentagesOfInformativeFeatures_Run" . $Run . ".csv";
+        $BoleanInformative   = $OutPath ."/". $Test . "_BoleanInformativeFeatures_Run" . $Run . ".csv";
+        
+        $SummaryReport       = $OutPath ."/". $Test . "_InformativeSummary" . $Run . ".csv";
+        
         $Plot                = $OutPath ."/". $Test . "_DotPlot_Run" . $Run . ".pdf";
         $HeatMap             = $OutPath ."/". $Test . "_HeatMap_Run" . $Run . ".png";
         $PlotRScript         = $OutPath ."/". "DotPlotScript_Run" . $Run . ".R";
         $HeatMapRScript      = $OutPath ."/". "HeatMapScript_Run" . $Run . ".R";
-        $Informative         = $OutPath ."/". "InformativeFeatures_Run" . $Run . ".csv";
-        $CombinedReport      = $OutPath ."/". $Test . "_Percentages_Run" . $Run . ".csv";
-        $BoleanInformative   = $OutPath ."/". $Test . "_BoleanInformative_Run" . $Run . ".csv";
+        
         
         # Loading the bolean training file
         ($LinesOnTrainingFile, $ColumnsOnTrainingFile, @TrainingMatrix) = Matrix($TrainingFile);
@@ -251,30 +259,46 @@ my $Combined = [ ];
         close FILE;
         
         @TestReport = ReadFile($TestReport);
-        @Combined = ReadFile($CombinedReport);
+        @Presence   = ReadFile($PercentagesReport);
+        @Combined   = ReadFile($CombinedReport);
         
         for ($i=0;$i<$LinesOnTrainingFile;$i++){
                 $TestReportLine = $TestReport[$i];
+                $PresenceReportLine = $Presence[$i];
                 $CombinedReportLine = $Combined[$i]; 
                 if ($i == 0){
-                        open (FILE, ">$Informative");
-                                print FILE $CombinedReportLine, "\n";
-                        close FILE;
+                        open (CHI, ">$TestInformative");
+                        open (PRESENCE, ">$PresenceInformative");
+                        open (COMBINED, ">$CombinedInformative");
+                                print CHI $TestReportLine, "\n";
+                                print PRESENCE $PresenceReportLine, "\n";
+                                print COMBINED $CombinedReportLine, "\n";
+                        close CHI;
+                        close PRESENCE;
+                        close COMBINED;
                 }else{
                         @TestReportData = split(",",$TestReportLine);
                         $Feature = $TestReportData[0];
+                        shift@TestReportData;
                         if ($Threshold > 0){
                                 if ( any { $_ > $Threshold} @TestReportData){
-                                        open (FILE, ">>$Informative");
-                                                print FILE $CombinedReportLine, "\n";
-                                        close FILE;
+                                 
+                                        open (CHI, ">>$TestInformative");
+                                        open (PRESENCE, ">>$PresenceInformative");
+                                        open (COMBINED, ">>$CombinedInformative");
+                                                print CHI $TestReportLine, "\n";
+                                                print PRESENCE $PresenceReportLine, "\n";
+                                                print COMBINED $CombinedReportLine, "\n";
+                                        close CHI;
+                                        close PRESENCE;
+                                        close COMBINED;
                                         
-                                        open (FILE, ">>$BoleanInformative");
+                                        open (BOLEAN, ">>$BoleanInformative");
                                                 my $InformativeFeature = `grep $Feature $TrainingFile`;
                                                 chop $InformativeFeature;
                                                 chop $InformativeFeature;
-                                                print FILE $InformativeFeature, "\n";
-                                        close FILE;   
+                                                print BOLEAN $InformativeFeature, "\n";
+                                        close BOLEAN;   
                                 }
                         }
                 }
