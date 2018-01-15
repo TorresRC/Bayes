@@ -5,8 +5,9 @@
 #e-mail:   torres.roberto.c@gmail.com                                           #
 #################################################################################
 use strict;
-use List::MoreUtils qw(uniq);
-use List::MoreUtils qw(any);
+use List::Util qw(max min);
+use List::MoreUtils qw(any uniq first_index);
+#use List::MoreUtils qw(any);
 use FindBin;
 use lib "$FindBin::Bin/../lib";
 use Routines;
@@ -48,11 +49,13 @@ my($Test, $Run, $TestReport, $PercentagesReport, $Plot, $HeatMap, $PlotRScript,
    $nConfusion, $ChiConfidence, $Round, $HeatMapRScript, $Matrix, $CombinedInformative,
    $TestInformative, $PresenceInformative, $InformativeFeatures, $InformativeLines,
    $CombinedReport, $TestReportLine, $CombinedReportLine, $BoleanInformative,
-   $TrainingHeader, $PresenceReportLine, $SummaryReport);
+   $TrainingHeader, $PresenceReportLine, $SummaryReport, $InformativeIndex,
+   $InformativeClass);
 my($i, $j);
 my(@TrainingFile, @TrainingFileFields, @TrainingMatrix, @MetaDataFile,
    @MetaDataFileFields, @MetaDataMatrix, @Classes, @Elements, @ChiConfidence,
-   @ChiConfidences, @TestReport, @Combined, @TestReportData, @Presence);
+   @ChiConfidences, @TestReport, @Combined, @TestReportData, @Presence,
+   @PresenceData);
 my(%ClassOfElement, %Elements, %pClass, %cpClass, %ClassHits,
    %HitsOfFeaturesInClass, %TotalFeatureHits, %Test,%PercentageOfFeatureInClass);
 my(%a, %b, %c, %d);
@@ -99,7 +102,6 @@ my $Report = [ ];
 my $Percentages = [ ];
 my $Combined = [ ];
         
-        print "\n\n\t$TrainingFile\n\n";
         $TestReport          = $OutPath ."/". $Test . "_Values_Run" . $Run . ".csv";
         $PercentagesReport   = $OutPath ."/". "PresencePercentages_Run" . $Run . ".csv";
         $CombinedReport      = $OutPath ."/". $Test . "_ValuesAndPresencePercentages_Run" . $Run . ".csv";
@@ -265,14 +267,20 @@ my $Combined = [ ];
         for ($i=0;$i<$LinesOnTrainingFile;$i++){
                 $TestReportLine = $TestReport[$i];
                 $PresenceReportLine = $Presence[$i];
-                $CombinedReportLine = $Combined[$i]; 
+                $CombinedReportLine = $Combined[$i];
+                
+                @PresenceData = split(",",$PresenceReportLine);
+                shift@PresenceData;
+                
                 if ($i == 0){
                         open (CHI, ">$TestInformative");
                         open (PRESENCE, ">$PresenceInformative");
                         open (COMBINED, ">$CombinedInformative");
+                        open (SUM, ">$SummaryReport");
                                 print CHI $TestReportLine, "\n";
                                 print PRESENCE $PresenceReportLine, "\n";
                                 print COMBINED $CombinedReportLine, "\n";
+                                print SUM "ORF,Disease,Presence(%),Prediction\n";
                         close CHI;
                         close PRESENCE;
                         close COMBINED;
@@ -298,7 +306,17 @@ my $Combined = [ ];
                                                 chop $InformativeFeature;
                                                 chop $InformativeFeature;
                                                 print BOLEAN $InformativeFeature, "\n";
-                                        close BOLEAN;   
+                                        close BOLEAN;
+                                        
+                                        $InformativeIndex = first_index{$_ eq max@TestReportData} @TestReportData;
+                                        $InformativeClass = $Classes[$InformativeIndex];
+                                        open (SUM, ">>$SummaryReport");
+                                        if ($PresenceData[$InformativeIndex] == max@PresenceData){
+                                                print SUM "$Feature,$Classes[$InformativeIndex],$PresenceData[$InformativeIndex],Present\n";
+                                        }else{
+                                                print SUM "$Feature,$Classes[$InformativeIndex],$PresenceData[$InformativeIndex],Absent\n";
+                                        }
+                                        close SUM;
                                 }
                         }
                 }
@@ -371,19 +389,23 @@ my $Combined = [ ];
                         print RSCRIPT 'library(RColorBrewer)' . "\n";
                         
                         print RSCRIPT "png(\"$HeatMap\"," . "\n";
-                        print RSCRIPT "width = 5*300," . "\n";
-                        print RSCRIPT "height = 5*300," . "\n";
+                        print RSCRIPT "width = 10*300," . "\n";
+                        print RSCRIPT "height = 10*300," . "\n";
                         print RSCRIPT "res = 300," . "\n";
-                        print RSCRIPT "pointsize = 8)" . "\n";
+                        print RSCRIPT "pointsize = 5)" . "\n";
                         
-                        print RSCRIPT 'Colors <- colorRampPalette(c("red", "yellow", "green"))(n=299)' . "\n";
+                        print RSCRIPT 'Colors <- colorRampPalette(c("red", "yellow", "green"))(n=100)' . "\n";
                         
                         $Matrix = "Matrix";
-                        
-                        print RSCRIPT "df <- read.csv(\"$TestReport\")" . "\n";
+                        print RSCRIPT "df <- read.csv(\"$TestInformative\")" . "\n";
                         print RSCRIPT 'rnames <- df[,1]' . "\n";
                         print RSCRIPT "$Matrix <- data.matrix(df[,2:ncol(df)])" . "\n";
                         print RSCRIPT "rownames($Matrix) <- rnames" . "\n";
+                        
+                        my $PresenceMatrix = "PresenceMatrix";
+                        print RSCRIPT "TestV <- read.csv(\"$PresenceInformative\")" . "\n";
+                        print RSCRIPT 'rnames <- TestV[,1]' . "\n";
+                        print RSCRIPT "$PresenceMatrix <- data.matrix(TestV[,2:ncol(TestV)])" . "\n";
                         
                         if ($Correlation eq "on"){
                                 print RSCRIPT "$Matrix <- cor($Matrix)" . "\n";
@@ -394,6 +416,7 @@ my $Combined = [ ];
                         print RSCRIPT 'keysize = 0.8,' . "\n";
                         print RSCRIPT 'key.title = "Confidence",' . "\n";
                         print RSCRIPT 'key.xlab = "Key",' . "\n";
+                        #print RSCRIPT "cellnote = $PresenceMatrix," . "\n";
                         print RSCRIPT 'density.info="none",' . "\n";                     # Turns of density plot un legend
                         print RSCRIPT 'notecol = "black",' . "\n";                       # font of cell labels in black
                         print RSCRIPT 'trace = "none",' . "\n";                          # Turns of trace lines in heat map
@@ -447,7 +470,7 @@ my $Combined = [ ];
                 system ("rm $HeatMapRScript");
         }
            
-        system ("rm $OutPath/*.Rout $OutPath/Rplots.pdf");
+        #system ("rm $OutPath/*.Rout $OutPath/Rplots.pdf");
         
         print "Done!\n\n";
         
