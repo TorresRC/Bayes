@@ -50,7 +50,7 @@ my($Test, $Run, $TestReport, $PercentagesReport, $Plot, $HeatMap, $PlotRScript,
    $TestInformative, $PresenceInformative, $InformativeFeatures, $InformativeLines,
    $CombinedReport, $TestReportLine, $CombinedReportLine, $BoleanInformative,
    $TrainingHeader, $PresenceReportLine, $SummaryReport, $InformativeIndex,
-   $InformativeClass);
+   $InformativeClass, $SuperHeatMapRScript);
 my($i, $j);
 my(@TrainingFile, @TrainingFileFields, @TrainingMatrix, @MetaDataFile,
    @MetaDataFileFields, @MetaDataMatrix, @Classes, @Elements, @ChiConfidence,
@@ -117,6 +117,7 @@ my $Combined = [ ];
         $HeatMap             = $OutPath ."/". $Test . "_HeatMap_Run" . $Run . ".png";
         $PlotRScript         = $OutPath ."/". "DotPlotScript_Run" . $Run . ".R";
         $HeatMapRScript      = $OutPath ."/". "HeatMapScript_Run" . $Run . ".R";
+        $SuperHeatMapRScript = $OutPath ."/". "SuperHeatMapScript_Run" . $Run . ".R";
         
         
         # Loading the bolean training file
@@ -208,7 +209,7 @@ my $Combined = [ ];
               }elsif ($Method eq "X2"){     # <------------------------------------ Chi square
                 $Test{$Feature} = (($nConfusion*(($a*$d)-($b*$c))**2))/(($a+$c)*($a+$b)*($b+$d)*($c+$d));
               }elsif ($Method eq "OR"){     # <------------------------------------ Odds Ratios
-                $Test{$Feature} = ($a*$d)/($b*$c);
+                $Test{$Feature} = log2(($a*$d)/($b*$c));
               }elsif ($Method eq "MI"){     # <------------------------------------ Mutual information
                 $Test{$Feature} = log10(($a*$nConfusion)/(($a+$b)*($a+$c)));
               }
@@ -288,38 +289,67 @@ my $Combined = [ ];
                         @TestReportData = split(",",$TestReportLine);
                         $Feature = $TestReportData[0];
                         shift@TestReportData;
-                        if ($Threshold > 0){
-                                if ( any { $_ > $Threshold} @TestReportData){
-                                 
-                                        open (CHI, ">>$TestInformative");
-                                        open (PRESENCE, ">>$PresenceInformative");
-                                        open (COMBINED, ">>$CombinedInformative");
-                                                print CHI $TestReportLine, "\n";
-                                                print PRESENCE $PresenceReportLine, "\n";
-                                                print COMBINED $CombinedReportLine, "\n";
-                                        close CHI;
-                                        close PRESENCE;
-                                        close COMBINED;
-                                        
-                                        open (BOLEAN, ">>$BoleanInformative");
-                                                my $InformativeFeature = `grep $Feature $TrainingFile`;
-                                                chop $InformativeFeature;
-                                                chop $InformativeFeature;
-                                                print BOLEAN $InformativeFeature, "\n";
-                                        close BOLEAN;
-                                        
-                                        $InformativeIndex = first_index{$_ eq max@TestReportData} @TestReportData;
-                                        $InformativeClass = $Classes[$InformativeIndex];
-                                        open (SUM, ">>$SummaryReport");
-                                        if ($PresenceData[$InformativeIndex] == max@PresenceData){
-                                                print SUM "$Feature,$Classes[$InformativeIndex],$PresenceData[$InformativeIndex],Present\n";
-                                        }else{
-                                                print SUM "$Feature,$Classes[$InformativeIndex],$PresenceData[$InformativeIndex],Absent\n";
-                                        }
-                                        close SUM;
-                                }
-                        }
+                        #if ($Threshold > 0){
+                        #        if ( any { $_ > $Threshold} @TestReportData){
+                        #         
+                        #                open (CHI, ">>$TestInformative");
+                        #                open (PRESENCE, ">>$PresenceInformative");
+                        #                open (COMBINED, ">>$CombinedInformative");
+                        #                        print CHI $TestReportLine, "\n";
+                        #                        print PRESENCE $PresenceReportLine, "\n";
+                        #                        print COMBINED $CombinedReportLine, "\n";
+                        #                close CHI;
+                        #                close PRESENCE;
+                        #                close COMBINED;
+                        #                
+                        #                open (BOLEAN, ">>$BoleanInformative");
+                        #                        my $InformativeFeature = `grep $Feature $TrainingFile`;
+                        #                        chop $InformativeFeature;
+                        #                        chop $InformativeFeature;
+                        #                        print BOLEAN $InformativeFeature, "\n";
+                        #                close BOLEAN;
+                        #                
+                        #                $InformativeIndex = first_index{$_ eq max@TestReportData} @TestReportData;
+                        #                $InformativeClass = $Classes[$InformativeIndex];
+                        #                open (SUM, ">>$SummaryReport");
+                        #                if ($PresenceData[$InformativeIndex] == max@PresenceData){
+                        #                        print SUM "$Feature,$Classes[$InformativeIndex],$PresenceData[$InformativeIndex],Present\n";
+                        #                }else{
+                        #                        print SUM "$Feature,$Classes[$InformativeIndex],$PresenceData[$InformativeIndex],Absent\n";
+                        #                }
+                        #                close SUM;
+                        #        }
+                        #}
+                #}
+                
+                
+                
+                #######
+                
+                  if ( any { $_ > 3 or $_ < "-3"} @TestReportData){
+                  #if ( any { $_ > 2} @TestReportData){
+                                     open (OR, ">>$TestInformative");
+                                     open (PRESENCE, ">>$PresenceInformative");
+                                     open (COMBINED, ">>$CombinedInformative");
+                                                   print OR $TestReportLine, "\n";
+                                                   print PRESENCE $PresenceReportLine, "\n";
+                                                   print COMBINED $CombinedReportLine, "\n";
+                                     close OR;
+                                     close PRESENCE;
+                                     close COMBINED;
+                                           
+                                     open (BOLEAN, ">>$BoleanInformative");
+                                                   my $InformativeFeature = `grep $Feature $TrainingFile`;
+                                                   chop $InformativeFeature;
+                                                   chop $InformativeFeature;
+                                                   print BOLEAN $InformativeFeature, "\n";
+                                     close BOLEAN;
+                  }
                 }
+        
+                
+                #######
+                
         }
         
         # Building dot plot
@@ -470,11 +500,59 @@ my $Combined = [ ];
                 system ("rm $HeatMapRScript");
         }
            
-        #system ("rm $OutPath/*.Rout $OutPath/Rplots.pdf");
+        system ("rm $OutPath/*.Rout $OutPath/Rplots.pdf");
         
         print "Done!\n\n";
         
+   
+        # SuperHeat Map;
+        if ($HeatMapPlot eq "on"){
+                open(RSCRIPT, ">$SuperHeatMapRScript");
+                        print RSCRIPT 'library(superheat)' . "\n";
+                        print RSCRIPT 'library(RColorBrewer)' . "\n";
+                        
+                        #print RSCRIPT "png(\"$HeatMap\"," . "\n";
+                        #print RSCRIPT "width = 10*300," . "\n";
+                        #print RSCRIPT "height = 10*300," . "\n";
+                        #print RSCRIPT "res = 300," . "\n";
+                        #print RSCRIPT "pointsize = 5)" . "\n";
+                        
+                        $Matrix = "Matrix";
+                        print RSCRIPT "df <- read.csv(\"$TestInformative\")," . "\n";
+                        print RSCRIPT 'rnames <- df[,1],' . "\n";
+                        print RSCRIPT "$Matrix <- data.matrix(df[,2:ncol(df)])," . "\n";
+                        print RSCRIPT "rownames($Matrix) <- rnames," . "\n";
+                        print RSCRIPT "superheat(as.matrix($Matrix)," . "\n";
+                        
+                        print RSCRIPT 'heat.pal = colorRampPalette(c("red", "yellow", "green"))(n=100),' . "\n";
+                        print RSCRIPT 'heat.na.col = "white",' . "\n";
+                        print RSCRIPT 'grid.vline.col = "white",' . "\n";
+                        
+                        #print RSCRIPT 'order.rows = "order(ORF)," . "\n";
+                        
+                        my $SummaryMatrix = "SummaryMatrix";
+                        print RSCRIPT "Summary <- read.csv(\"$SummaryReport\")," . "\n";
+                        print RSCRIPT 'rnames <- Summary[,1],' . "\n";
+                        print RSCRIPT "$SummaryMatrix <- data.matrix(Summary[,2:ncol(Summary)])," . "\n";
+                        
+                        print RSCRIPT "yr = as.numeric(as.character(Presence\(%\)\$SummaryMatrix))," . "\n";
+                        print RSCRIPT 'yr.plot.type = "bar",' . "\n";
+                        print RSCRIPT 'yr.axis.name = "Percentage Of Presence on Associated Disease",' . "\n";
+                        print RSCRIPT 'yr.plot.size = 0.2,' . "\n";
+                        print RSCRIPT 'yr.point.size = 4,' . "\n";
+                        print RSCRIPT 'yr.line.size = 2,' . "\n";
+                        
+                        print RSCRIPT 'left.labels.size = 0.5,' . "\n";
+                        print RSCRIPT 'left.label.text.size = 3,' . "\n";
+                        
+                        print RSCRIPT 'dev.off()';
+                close RSCRIPT;
+                system ("R CMD BATCH $SuperHeatMapRScript");
+                system ("rm $SuperHeatMapRScript");
+        }
+        
         $TrainingFile = $BoleanInformative;
+        
 }
 
 exit;
