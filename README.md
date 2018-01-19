@@ -13,7 +13,7 @@ The application is built from three standalone modules:
 ##### **_Note:_  In order for the CABBAGE to resume operation the input format must be comma-separated values (.csv) files**
 > Three files are needed: _Training.csv, MetaData.csv and Query.csv_
 
-> The _Training.csv_ file is a boolean table that denotes the presence or absence of a certain "feature" wichcan be either a gene or a genomic region denotated by a probe via Virtul Hybridization.
+> The _Training.csv_ file is a boolean table that denotes the presence or absence of a certain "feature" wich can either be a gene or a genomic region denotated by a probe, via Virtual Hybridization*.
 
 
 
