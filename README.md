@@ -16,9 +16,11 @@ The application is built from three standalone modules:
 > The _Training.csv_ file is a boolean table that denotes the presence or absence of a certain "feature" wich can either be a gene (Pan-genome*) or a genomic region denotated by a virtual probe (Virtual Hybridization*).
 
 
-
+____
 * The Feature Extraction, the classification has the problem of high dimensionality of feature space due to the extensive information from genomic data. This high dimensionality of feature space is solved by feature selection and feature extraction methods and improves the performance of categorization.The feature selection and feature extraction techniques remove the irrelevant features from the test and reduce the dimensionality of feature space. The module accomplishes this task by the use of a statistics test (Chi squared) extracting the most informative genes or genomic regions that make a sample belong to a particular class, the cutoff value por this procedure can be set by the user being the default p-value of 0.90.
 
+
+____
 * The Bootstrapping, the bootstrap is a tool for making statistical inferences when standard parametric assumptions are questionable. For the particular case of genomics data size, can be an issue such problems can be biased be the use on this module wich, generates random samples from a population with a certain distribution this way unevenness of classes can be overcome.
 
 
