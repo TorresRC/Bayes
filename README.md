@@ -1,4 +1,4 @@
-## CABBAGE    ![alt text](https://github.com/TorresRC/BayesianClassifier/blob/master/CABicon20.png)
+## CABBaGe    ![alt text](https://github.com/TorresRC/BayesianClassifier/blob/master/CABicon20.png)
 
 #### Classification Algorithm Based on a BAyesian method for GEnomics
 
