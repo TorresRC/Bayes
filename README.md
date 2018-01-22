@@ -47,7 +47,7 @@ ____
 
 #### Files examples.
 
-_Training.csv_
+##### _Training.csv_
 
 >|           | `Sample1` | `Sample2` | `Sample3` | `Sample4` |
 >| ----------| ---: | ---:  | ---:  | ---: |
@@ -59,5 +59,22 @@ _Training.csv_
 >| `Gene/Probe f` | 1 | 1 | 1 | 1 |
 
 The `Samples` and `Gene/Probe` names should be determined by the user, the file can contain as many rows and columns as needed.
+
+##### _MetaData.csv_
+
+>| `Sample` | `Class` |
+>| ----------| ---: | 
+>| `Sample a` | A | 
+>| `Sample b` | B | 
+>| `Sample c` | C | 
+>| `Sample d` | D | 
+>| `Sample e` | E | 
+>| `Sample f` | F | 
+
+The `Samples` and `Gene/Probe` names should be determined by the user, the file can contain as many rows and columns as needed.
+
+
+
+
 
 
