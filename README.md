@@ -45,5 +45,19 @@ ____
 > The _MetaData.csv_ file is a table that relates each of the samples form the _Training.csv_ to predifined classes.
 
 
+#### Files examples.
+
+_Training.csv_
+
+>|           | `Sample1` | `Sample2` | `Sample3` | `Sample4` |
+>| ----------| -----: | -----:  | -----:  | ------: |
+>| `Gene/Probe a` | 0 | 1 | 1 | 0 |
+>| `Gene/Probe b` | 1 | 1 | 1 | 1 |
+>| `Gene/Probe c` | 1 | 1 | 0 | 0 |
+>| `Gene/Probe d` | 0 | 0 | 0 | 0 |
+>| `Gene/Probe e` | 1 | 0 | 1 | 1 |
+>| `Gene/Probe f` | 1 | 1 | 1 | 1 |
+
+
 
 
