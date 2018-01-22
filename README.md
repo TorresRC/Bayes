@@ -71,7 +71,7 @@ The `Samples` and `Gene/Probe` names should be determined by the user, the file 
 >| `Sample5` | E | 
 >| `Sample6` | F | 
 
-The `Samples` and `Gene/Probe` names should be determined by the user, the file can contain as many rows and columns as needed.
+The `Samples` and `Gene/Probe` names should be determined by the user, the file can contain as many rows as needed.
 
 
 
