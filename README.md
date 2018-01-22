@@ -33,6 +33,16 @@ ____
 
 
 ____
-* The Bootstrapping, the bootstrap is a tool for making statistical inferences when standard parametric assumptions are questionable. For the particular case of genomics data size, can be an issue such problems can be biased be the use on this module wich, generates random samples from a population with a certain distribution this way unevenness of classes can be overcome.
+* The Bootstrapping, the bootstrap is a tool for making statistical inferences when standard parametric assumptions are questionable. For the particular case of genomics, sample size can be an issue, such problems can be biased be the use on this module wich, generates random samples from a population with a certain distribution this way unevenness of classes can be overcome.
+
+### How to
+##### **_Note:_  In order for the CABBAGE to resume operation the input format must be comma-separated values (.csv) files**
+> Three files are needed: _Training.csv, MetaData.csv and Query.csv_
+
+> The _Training.csv_ file is a boolean table that denotes the presence or absence of a certain "feature" wich can either be a gene (Pan-genome*) or a genomic region denotated by a virtual probe (Virtual Hybridization*).
+
+> The _MetaData.csv_ file is a table that relates each of the samples form the _Training.csv_ to predifined classes.
+
+
 
 
