@@ -64,12 +64,12 @@ The `Samples` and `Gene/Probe` names should be determined by the user, the file 
 
 >| `Sample` | `Class` |
 >| ----------| ---: | 
->| `Sample a` | A | 
->| `Sample b` | B | 
->| `Sample c` | C | 
->| `Sample d` | D | 
->| `Sample e` | E | 
->| `Sample f` | F | 
+>| `Sample1` | A | 
+>| `Sample2` | B | 
+>| `Sample3` | C | 
+>| `Sample4` | D | 
+>| `Sample5` | E | 
+>| `Sample6` | F | 
 
 The `Samples` and `Gene/Probe` names should be determined by the user, the file can contain as many rows and columns as needed.
 
