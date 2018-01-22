@@ -50,7 +50,7 @@ ____
 _Training.csv_
 
 >|           | `Sample1` | `Sample2` | `Sample3` | `Sample4` |
->| ----------| -----: | -----:  | -----:  | ------: |
+>| ----------| ---: | ---:  | ---:  | ---: |
 >| `Gene/Probe a` | 0 | 1 | 1 | 0 |
 >| `Gene/Probe b` | 1 | 1 | 1 | 1 |
 >| `Gene/Probe c` | 1 | 1 | 0 | 0 |
@@ -58,6 +58,6 @@ _Training.csv_
 >| `Gene/Probe e` | 1 | 0 | 1 | 1 |
 >| `Gene/Probe f` | 1 | 1 | 1 | 1 |
 
-
+The `Samples` and `Gene/Probe` names should be determined by the user, the file can contain as many rows and columns as needed.
 
 
