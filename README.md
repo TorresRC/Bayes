@@ -73,7 +73,18 @@ The `Samples` and `Gene/Probe` names should be determined by the user, the file 
 
 The `Samples` and `Gene/Probe` names should be determined by the user, the file can contain as many rows as needed.
 
+##### _Query.csv_
 
+>|           | `SampleX` | `SampleY` | `SampleZ` |
+>| ----------| ---: | ---:  | ---:  |
+>| `Gene/Probe a` | 1 | 1 | 1 |
+>| `Gene/Probe b` | 1 | 1 | 0 |
+>| `Gene/Probe c` | 1 | 0 | 0 |
+>| `Gene/Probe d` | 0 | 0 | 0 |
+>| `Gene/Probe e` | 1 | 0 | 0 |
+>| `Gene/Probe f` | 1 | 1 | 1 |
+
+The `Samples` and `Gene/Probe` names should be determined by the user, the file can contain as many rows and columns as needed.
 
 
 
