@@ -141,6 +141,7 @@ my $Combined = [ ];
                         $Element = $TrainingMatrix[0]->[$j];
                         $Class = $MetaDataMatrix[$j]->[$Column];
                         $ClassOfElement{$Element} = $Class;
+                        
                         if($Class eq $Classes[$i]){
                                 $Elements{$Classes[$i]}++; #   <-------- Number of elements in each class
                         }
@@ -361,12 +362,12 @@ my $Combined = [ ];
                                 print RSCRIPT "+ geom_point(aes(y=$Class,color=\"$Class\"))";
                         }
                         if($Method eq "X2"){
-                                @ChiConfidences = (0.9,0.95,0.975,0.99,0.999);
+                                @ChiConfidences = (0.9,0.95,0.995,0.999);
                                 foreach $ChiConfidence(@ChiConfidences){
                                         print RSCRIPT "+ geom_hline(aes(yintercept = qchisq($ChiConfidence, df=$nClasses-1), linetype=\"$ChiConfidence\"))";
                                 }
                         }
-                        print RSCRIPT "+ labs(x=\"Features\", y=\"bits\", title= \"$Test\", color=\"Class\", linetype=\"Confidence Intervals\")";
+                        print RSCRIPT "+ labs(x=\"Features\", y=\"Chi Values\", title= \"$Test\", color=\"Class\", linetype=\"Confidence Intervals\")";
                         if($N > 100){
                                 print RSCRIPT '+ theme(axis.text.x = element_text(angle = 90, size=4, hjust = 1))' . "\n";
                         }
@@ -394,7 +395,7 @@ my $Combined = [ ];
                                                 print FILE "+ geom_hline(aes(yintercept = qchisq($ChiConfidence, df=$nClasses-1), linetype=\"$ChiConfidence\"))";
                                         }
                                 }
-                                print FILE "+ labs(x=\"Features\", y=\"bits\", title= \"$Test\", color=\"Class\", linetype=\"Confidence Intervals\")";
+                                print FILE "+ labs(x=\"Features\", y=\"Chi_Values\", title= \"$Test\", color=\"Class\", linetype=\"Confidence Intervals\")";
                                 if($N > 100){
                                         print FILE '+ theme(axis.text.x = element_text(angle = 90, size=4, hjust = 1))' . "\n";
                                 }
@@ -416,7 +417,7 @@ my $Combined = [ ];
                         print RSCRIPT "png(\"$HeatMap\"," . "\n";
                         print RSCRIPT "width = 10*300," . "\n";
                         print RSCRIPT "height = 10*300," . "\n";
-                        print RSCRIPT "res = 300," . "\n";
+                        print RSCRIPT "res = 600," . "\n";
                         print RSCRIPT "pointsize = 5)" . "\n";
                         
                         print RSCRIPT 'Colors <- colorRampPalette(c("red", "yellow", "green"))(n=100)' . "\n";
@@ -438,9 +439,9 @@ my $Combined = [ ];
                         
                         print RSCRIPT "heatmap.2($Matrix," . "\n";
                         print RSCRIPT "main = \"$Test\"," . "\n";                        # Title
-                        print RSCRIPT 'keysize = 0.8,' . "\n";
+                        print RSCRIPT 'keysize = 0.5,' . "\n";
                         print RSCRIPT 'key.title = "Confidence",' . "\n";
-                        print RSCRIPT 'key.xlab = "Key",' . "\n";
+                        print RSCRIPT 'key.xlab = "Significancy",' . "\n";
                         #print RSCRIPT "cellnote = $PresenceMatrix," . "\n";
                         print RSCRIPT 'density.info="none",' . "\n";                     # Turns of density plot un legend
                         print RSCRIPT 'notecol = "black",' . "\n";                       # font of cell labels in black
