@@ -1,8 +1,3 @@
-Under Maintenance
-
-https://github.com/TorresRC/CABBaGe/wiki
-
-
 ## CABBaGe    ![alt text](https://github.com/TorresRC/BayesianClassifier/blob/master/Icons/CABicon10.png)
 
 ### Classification Algorithm Based on a Bayesian method for Genomics
